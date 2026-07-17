@@ -2,8 +2,8 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main" ]  # سيبدأ البناء تلقائياً عند الدفع إلى الفرع main
-  workflow_dispatch:     # يسمح لك بتشغيل البناء يدوياً من خلال واجهة GitHub
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -21,8 +21,8 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
-      - name: Build APK
-        run: ./gradlew assembleRelease
+      - name: Build APK with Gradle
+        run: ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
