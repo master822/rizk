@@ -19,13 +19,15 @@ jobs:
           distribution: 'temurin'
 
       - name: Make Gradle wrapper executable
-        run: chmod +x gradlew
+        run: chmod +x nativephp/android/gradlew
 
       - name: Build APK with Gradle
-        run: ./gradlew assembleRelease --no-daemon
+        run: |
+          cd nativephp/android
+          ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release-unsigned
-          path: app/build/outputs/apk/release/*.apk
+          path: nativephp/android/app/build/outputs/apk/release/*.apk
