@@ -22,7 +22,7 @@ class ProductController extends Controller
         // تحقق من نوع المستخدم وعرض النموذج المناسب
         if ($user->user_type === 'user') {
             return view('products.create-used', compact('categories'));
-        } elseif ($user->user_type === 'merchant') {
+        } elseif ($user->user_type === 'merchant' || in_array($user->user_type, ['cooking', 'vegetables', 'transport', 'jobs', 'hire-worker', 'hire-technician'])) {
             return view('products.create-new', compact('categories'));
         } else {
             return redirect()->back()->with('error', 'ليس لديك صلاحية لإضافة منتجات.');
@@ -52,8 +52,8 @@ class ProductController extends Controller
             return redirect()->back()->with('error', 'المستخدمون العاديون يمكنهم فقط إضافة منتجات مستعملة.');
         }
 
-        if ($user->user_type === 'merchant' && $request->is_used == true) {
-            return redirect()->back()->with('error', 'التجار يمكنهم فقط إضافة منتجات جديدة.');
+        if (in_array($user->user_type, ['merchant', 'cooking', 'vegetables', 'transport', 'jobs', 'hire-worker', 'hire-technician']) && $request->is_used == true) {
+            return redirect()->back()->with('error', 'يمكنك فقط إضافة منتجات جديدة.');
         }
 
         // التحقق من الحد الأقصى للمنتجات
@@ -85,9 +85,13 @@ class ProductController extends Controller
         $product->save();
 
         // التوجيه إلى الصفحة المناسبة حسب نوع المستخدم
-        $redirectRoute = $user->user_type === 'user' ? 'user.products' : 'merchant.products';
-        return redirect()->route($redirectRoute)
-                        ->with('success', 'تم إضافة المنتج بنجاح.');
+        if ($user->user_type === 'user') {
+            return redirect()->route('user.products')->with('success', 'تم إضافة المنتج بنجاح.');
+        } elseif (in_array($user->user_type, ['cooking', 'vegetables', 'transport', 'jobs', 'hire-worker', 'hire-technician'])) {
+            return redirect()->route('home')->with('success', 'تم إضافة الخدمة بنجاح.');
+        } else {
+            return redirect()->route('merchant.products')->with('success', 'تم إضافة المنتج بنجاح.');
+        }
     }
 
     public function edit($id)
@@ -188,10 +192,7 @@ class ProductController extends Controller
     public function usedProducts()
     {
         $products = Product::where('status', 'active')
-                          ->where('is_used', true)
-                          ->whereHas('user', function($query) {
-                              $query->where('user_type', 'user');
-                          })
+                          ->where('condition', 'used')
                           ->with(['user', 'category'])
                           ->orderBy('created_at', 'desc')
                           ->paginate(12);
@@ -202,10 +203,7 @@ class ProductController extends Controller
     public function newProducts()
     {
         $products = Product::where('status', 'active')
-                          ->where('is_used', false)
-                          ->whereHas('user', function($query) {
-                              $query->where('user_type', 'merchant');
-                          })
+                          ->where('condition', 'new')
                           ->with(['user', 'category'])
                           ->orderBy('created_at', 'desc')
                           ->paginate(12);
@@ -265,15 +263,9 @@ class ProductController extends Controller
         }
 
         if ($productType === 'new') {
-            $productsQuery->where('is_used', false)
-                         ->whereHas('user', function($query) {
-                             $query->where('user_type', 'merchant');
-                         });
+            $productsQuery->where('condition', 'new');
         } elseif ($productType === 'used') {
-            $productsQuery->where('is_used', true)
-                         ->whereHas('user', function($query) {
-                             $query->where('user_type', 'user');
-                         });
+            $productsQuery->where('condition', 'used');
         }
 
         switch ($sort) {
@@ -339,8 +331,13 @@ class ProductController extends Controller
 
         $product->delete();
 
-        $redirectRoute = Auth::user()->user_type === 'user' ? 'user.products' : 'merchant.products';
-        return redirect()->route($redirectRoute)
-                        ->with('success', 'تم حذف المنتج بنجاح.');
+        $user = Auth::user();
+        if ($user->user_type === 'user') {
+            return redirect()->route('user.products')->with('success', 'تم حذف المنتج بنجاح.');
+        } elseif (in_array($user->user_type, ['cooking', 'vegetables', 'transport', 'jobs', 'hire-worker', 'hire-technician'])) {
+            return redirect()->route('home')->with('success', 'تم حذف الخدمة بنجاح.');
+        } else {
+            return redirect()->route('merchant.products')->with('success', 'تم حذف المنتج بنجاح.');
+        }
     }
 }

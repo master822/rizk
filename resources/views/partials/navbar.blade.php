@@ -72,6 +72,22 @@
                         <i class="fas fa-recycle me-1"></i>المنتجات المستعملة
                     </a>
                 </li>
+
+                <!-- خدمات -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle fw-semibold" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-concierge-bell me-1"></i>خدمات
+                    </a>
+                    <ul class="dropdown-menu animated-card">
+                        <li><a class="dropdown-item" href="{{ url('/services/cooking') }}"><i class="fas fa-utensils me-2"></i>طبخ منزل</a></li>
+                        <li><a class="dropdown-item" href="{{ url('/services/vegetables') }}"><i class="fas fa-leaf me-2"></i>تجهيز خضار</a></li>
+                        <li><a class="dropdown-item" href="{{ url('/services/transport') }}"><i class="fas fa-truck me-2"></i>سيارة نقل</a></li>
+                        <li><a class="dropdown-item" href="{{ url('/services/jobs') }}"><i class="fas fa-briefcase me-2"></i>فرص عمل</a></li>
+                        <li><a class="dropdown-item" href="{{ url('/services/hire-worker') }}"><i class="fas fa-user-tie me-2"></i>استأجر عامل</a></li>
+                        <li><a class="dropdown-item" href="{{ url('/services/hire-technician') }}"><i class="fas fa-tools me-2"></i>استأجر فني</a></li>
+                        <li><a class="dropdown-item" href="{{ url('/services/cleaning-company') }}"><i class="fas fa-broom me-2"></i>ورشة تنظيف</a></li>
+                    </ul>
+                </li>
             </ul>
 
             <ul class="navbar-nav ms-auto align-items-center">
@@ -83,7 +99,7 @@
                 </li>
 
                 @auth
-                    <!-- لوحة تحكم التاجر (تظهر فقط للتجار) -->
+                    <!-- لوحة تحكم التاجر -->
                     @if(auth()->user()->user_type === 'merchant')
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle fw-semibold" href="#" role="button" data-bs-toggle="dropdown">
@@ -98,7 +114,22 @@
                         </li>
                     @endif
 
-                    <!-- لوحة تحكم المستخدم العادي (تظهر فقط للمستخدمين العاديين) -->
+                    <!-- لوحة تحكم مقدم الخدمات -->
+                    @if(auth()->user()->isServiceProvider())
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle fw-semibold" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-concierge-bell me-1"></i>لوحة الخدمات
+                            </a>
+                            <ul class="dropdown-menu animated-card">
+                                <li><a class="dropdown-item" href="{{ url('/service-provider/dashboard') }}"><i class="fas fa-chart-line me-2"></i>لوحة التحكم</a></li>
+                                <li><a class="dropdown-item" href="{{ url('/service-provider/services') }}"><i class="fas fa-list me-2"></i>خدماتي</a></li>
+                                <li><a class="dropdown-item" href="{{ url('/service-provider/jobs/create') }}"><i class="fas fa-plus me-2"></i>نشر فرصة عمل</a></li>
+                                <li><a class="dropdown-item" href="{{ url('/service-provider/jobs') }}"><i class="fas fa-briefcase me-2"></i>فرص العمل</a></li>
+                            </ul>
+                        </li>
+                    @endif
+
+                    <!-- لوحة تحكم المستخدم العادي -->
                     @if(auth()->user()->user_type === 'user')
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle fw-semibold" href="#" role="button" data-bs-toggle="dropdown">
@@ -112,14 +143,14 @@
                         </li>
                     @endif
 
-                    <!-- لوحة المسؤول (تظهر فقط للمسؤولين) -->
+                    <!-- لوحة المسؤول -->
                     @if(auth()->user()->user_type === 'admin')
                         <li class="nav-item">
                             <a class="nav-link fw-semibold" href="{{ url('/admin/dashboard') }}"><i class="fas fa-shield-alt me-1"></i>لوحة المسؤول</a>
                         </li>
                     @endif
                     
-                    <!-- زر تسجيل الخروج (يظهر لجميع المستخدمين) -->
+                    <!-- زر تسجيل الخروج -->
                     <li class="nav-item">
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
@@ -129,7 +160,6 @@
                         </form>
                     </li>
                 @else
-                    <!-- روابط التسجيل والدخول للزوار -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle fw-semibold" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user me-1"></i>حساب
@@ -139,6 +169,7 @@
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ route('register') }}"><i class="fas fa-user-plus me-2"></i>حساب مستخدم</a></li>
                             <li><a class="dropdown-item" href="{{ route('register') }}?type=merchant"><i class="fas fa-store me-2"></i>حساب تاجر</a></li>
+                            <li><a class="dropdown-item" href="{{ route('register') }}?type=service"><i class="fas fa-concierge-bell me-2"></i>حساب مقدم خدمات</a></li>
                         </ul>
                     </li>
                 @endauth

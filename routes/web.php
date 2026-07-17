@@ -15,6 +15,11 @@ use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MerchantSubscriptionController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\UserDashboardController;
+use App\Http\Controllers\MerchantDashboardController;
+use App\Http\Controllers\ServiceProviderDashboardController;
+use App\Http\Controllers\JobController;
+use App\Http\Controllers\SearchController;
 
 // الصفحة الرئيسية
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -26,6 +31,14 @@ Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// الملف الشخصي (لجميع المستخدمين)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/change-password', [ProfileController::class, 'showChangePassword'])->name('change-password');
+    Route::post('/change-password', [ProfileController::class, 'changePassword'])->name('change-password.update');
+});
+
 // المنتجات (العامة)
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/products/new', [ProductController::class, 'newProducts'])->name('products.new');
@@ -33,6 +46,80 @@ Route::get('/products/used', [ProductController::class, 'usedProducts'])->name('
 Route::get('/products/category/{categorySlug}', [ProductController::class, 'byCategory'])->name('products.byCategory');
 Route::get('/products/search', [ProductController::class, 'search'])->name('products.search');
 Route::get('/products/{id}', [ProductController::class, 'show'])->name('products.show');
+
+// المنتجات المستعملة
+Route::get('/used-products', [ProductController::class, 'usedProducts'])->name('used-products');
+
+// لوحة تحكم المستخدم العادي
+Route::middleware(['auth'])->prefix('user')->group(function () {
+    Route::get('/dashboard', [UserDashboardController::class, 'dashboard'])->name('user.dashboard');
+    Route::get('/products', [UserDashboardController::class, 'myProducts'])->name('user.products');
+    Route::get('/products/create', [UserDashboardController::class, 'createProduct'])->name('user.products.create');
+    Route::post('/products', [UserDashboardController::class, 'storeProduct'])->name('user.products.store');
+    Route::get('/products/{id}/edit', [UserDashboardController::class, 'editProduct'])->name('user.products.edit');
+    Route::put('/products/{id}', [UserDashboardController::class, 'updateProduct'])->name('user.products.update');
+    Route::delete('/products/{id}', [UserDashboardController::class, 'deleteProduct'])->name('user.products.delete');
+    Route::get('/messages', [UserDashboardController::class, 'messages'])->name('user.messages');
+    Route::post('/messages/{id}/read', [UserDashboardController::class, 'markMessageRead'])->name('user.messages.read');
+    Route::get('/profile', [UserDashboardController::class, 'profile'])->name('user.profile');
+    Route::post('/profile', [UserDashboardController::class, 'updateProfile'])->name('user.profile.update');
+    Route::post('/change-password', [UserDashboardController::class, 'changePassword'])->name('user.change-password');
+});
+
+// لوحة تحكم التاجر
+Route::middleware(['auth'])->prefix('merchant')->group(function () {
+    Route::get('/dashboard', [MerchantDashboardController::class, 'dashboard'])->name('merchant.dashboard');
+    Route::get('/products', [MerchantDashboardController::class, 'myProducts'])->name('merchant.products');
+    Route::get('/products/create', [MerchantDashboardController::class, 'createProduct'])->name('merchant.products.create');
+    Route::post('/products', [MerchantDashboardController::class, 'storeProduct'])->name('merchant.products.store');
+    Route::get('/products/{id}/edit', [MerchantDashboardController::class, 'editProduct'])->name('merchant.products.edit');
+    Route::put('/products/{id}', [MerchantDashboardController::class, 'updateProduct'])->name('merchant.products.update');
+    Route::delete('/products/{id}', [MerchantDashboardController::class, 'deleteProduct'])->name('merchant.products.delete');
+    Route::get('/discounts', [MerchantDashboardController::class, 'discounts'])->name('merchant.discounts');
+    Route::get('/discounts/create', [MerchantDashboardController::class, 'createDiscount'])->name('merchant.discounts.create');
+    Route::post('/discounts', [MerchantDashboardController::class, 'storeDiscount'])->name('merchant.discounts.store');
+    Route::delete('/discounts/{id}', [MerchantDashboardController::class, 'deleteDiscount'])->name('merchant.discounts.delete');
+    Route::get('/messages', [MerchantDashboardController::class, 'messages'])->name('merchant.messages');
+    Route::post('/messages/{id}/read', [MerchantDashboardController::class, 'markMessageRead'])->name('merchant.messages.read');
+    Route::get('/jobs', [MerchantDashboardController::class, 'jobs'])->name('merchant.jobs');
+    Route::get('/jobs/create', [MerchantDashboardController::class, 'createJob'])->name('merchant.jobs.create');
+    Route::post('/jobs', [MerchantDashboardController::class, 'storeJob'])->name('merchant.jobs.store');
+    Route::get('/jobs/{id}/edit', [MerchantDashboardController::class, 'editJob'])->name('merchant.jobs.edit');
+    Route::put('/jobs/{id}', [MerchantDashboardController::class, 'updateJob'])->name('merchant.jobs.update');
+    Route::delete('/jobs/{id}', [MerchantDashboardController::class, 'deleteJob'])->name('merchant.jobs.delete');
+    Route::get('/profile', [MerchantDashboardController::class, 'profile'])->name('merchant.profile');
+    Route::post('/profile', [MerchantDashboardController::class, 'updateProfile'])->name('merchant.profile.update');
+    Route::post('/change-password', [MerchantDashboardController::class, 'changePassword'])->name('merchant.change-password');
+});
+
+// لوحة تحكم مقدم الخدمات
+Route::middleware(['auth'])->prefix('service-provider')->group(function () {
+    Route::get('/dashboard', [ServiceProviderDashboardController::class, 'dashboard'])->name('service-provider.dashboard');
+    Route::get('/services', [ServiceProviderDashboardController::class, 'myServices'])->name('service-provider.services');
+    Route::get('/services/create', [ServiceProviderDashboardController::class, 'createService'])->name('service-provider.services.create');
+    Route::post('/services', [ServiceProviderDashboardController::class, 'storeService'])->name('service-provider.services.store');
+    Route::get('/services/{id}/edit', [ServiceProviderDashboardController::class, 'editService'])->name('service-provider.services.edit');
+    Route::put('/services/{id}', [ServiceProviderDashboardController::class, 'updateService'])->name('service-provider.services.update');
+    Route::delete('/services/{id}', [ServiceProviderDashboardController::class, 'deleteService'])->name('service-provider.services.delete');
+    Route::get('/jobs', [ServiceProviderDashboardController::class, 'jobs'])->name('service-provider.jobs');
+    Route::get('/jobs/create', [ServiceProviderDashboardController::class, 'createJob'])->name('service-provider.jobs.create');
+    Route::post('/jobs', [ServiceProviderDashboardController::class, 'storeJob'])->name('service-provider.jobs.store');
+    Route::get('/jobs/{id}/edit', [ServiceProviderDashboardController::class, 'editJob'])->name('service-provider.jobs.edit');
+    Route::put('/jobs/{id}', [ServiceProviderDashboardController::class, 'updateJob'])->name('service-provider.jobs.update');
+    Route::delete('/jobs/{id}', [ServiceProviderDashboardController::class, 'deleteJob'])->name('service-provider.jobs.delete');
+    Route::get('/messages', [ServiceProviderDashboardController::class, 'messages'])->name('service-provider.messages');
+    Route::post('/messages/{id}/read', [ServiceProviderDashboardController::class, 'markMessageRead'])->name('service-provider.messages.read');
+    Route::get('/profile', [ServiceProviderDashboardController::class, 'profile'])->name('service-provider.profile');
+    Route::post('/profile', [ServiceProviderDashboardController::class, 'updateProfile'])->name('service-provider.profile.update');
+    Route::post('/change-password', [ServiceProviderDashboardController::class, 'changePassword'])->name('service-provider.change-password');
+});
+
+// التجار (العامة)
+Route::get('/merchants', [MerchantController::class, 'merchantsList'])->name('merchants.index');
+Route::get('/merchants/{id}', [MerchantController::class, 'show'])->name('merchants.show');
+
+// التخفيضات (العامة)
+Route::get('/discounts', [DiscountController::class, 'discounts'])->name('discounts');
 
 // التقييمات
 Route::middleware(['auth'])->group(function () {
@@ -52,111 +139,14 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/messages/{messageId}/reply', [MessageController::class, 'replyToMessage'])->name('messages.reply');
 });
 
-// التجار
-Route::get('/merchants', [MerchantController::class, 'merchantsList'])->name('merchants.index');
-Route::get('/merchants/{id}', [MerchantController::class, 'show'])->name('merchants.show');
-Route::get('/merchants/category/{category}', [MerchantController::class, 'byCategory'])->name('merchants.byCategory');
-
-// لوحة تحكم التاجر
-Route::middleware(['auth'])->prefix('merchant')->group(function () {
-    Route::get('/dashboard', [MerchantController::class, 'dashboard'])->name('merchant.dashboard');
-    Route::get('/products', [MerchantController::class, 'myProducts'])->name('merchant.products');
-    Route::get('/products/create', [ProductController::class, 'create'])->name('merchant.products.create');
-    
-    // تخفيضات التاجر
-    Route::get('/discounts', [MerchantDiscountController::class, 'showDiscounts'])->name('merchant.discounts');
-    Route::get('/discounts/create', [MerchantDiscountController::class, 'createDiscount'])->name('merchant.discounts.create');
-    Route::post('/discounts/store', [MerchantDiscountController::class, 'storeDiscount'])->name('merchant.discounts.store');
-    Route::get('/discounts/{id}/edit', [MerchantDiscountController::class, 'editDiscount'])->name('merchant.discounts.edit');
-    Route::put('/discounts/{id}', [MerchantDiscountController::class, 'updateDiscount'])->name('merchant.discounts.update');
-    Route::delete('/discounts/{id}', [MerchantDiscountController::class, 'removeDiscount'])->name('merchant.discounts.remove');
-    
-    // خطط الاشتراك
-    Route::get('/subscription/plans', [MerchantSubscriptionController::class, 'plans'])->name('merchant.subscription.plans');
-    Route::post('/subscription/{plan}', [MerchantSubscriptionController::class, 'subscribe'])->name('merchant.subscribe');
-});
-
-// نظام الدفع والاشتراكات
-Route::middleware(['auth'])->group(function () {
-    Route::get('/payment/success', [PaymentController::class, 'paymentSuccess'])->name('payment.success');
-    Route::get('/payment/cancel', [PaymentController::class, 'paymentCancel'])->name('payment.cancel');
-    Route::get('/payment/{plan}', [PaymentController::class, 'showPaymentForm'])->name('payment.form');
-    Route::post('/payment/{plan}/initiate', [PaymentController::class, 'initiatePayment'])->name('payment.initiate');
-});
-
-// مسارات الاشتراك
-Route::middleware(['auth'])->group(function () {
-    Route::get('/subscription/history', [PaymentController::class, 'subscriptionHistory'])->name('subscription.history');
-    Route::post('/subscription/cancel', [PaymentController::class, 'cancelSubscription'])->name('subscription.cancel');
-});
-
-// لوحة تحكم المستخدم العادي
-Route::middleware(['auth'])->prefix('user')->group(function () {
-    Route::get('/dashboard', [UserController::class, 'dashboard'])->name('user.dashboard');
-    Route::get('/products', [UserController::class, 'myProducts'])->name('user.products');
-    Route::get('/products/create', [ProductController::class, 'create'])->name('user.products.create');
-});
-
-// لوحة تحكم المدير
-Route::middleware(['auth'])->prefix('admin')->group(function () {
-    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
-    Route::get('/users', [AdminController::class, 'users'])->name('admin.users');
-    Route::get('/products', [AdminController::class, 'products'])->name('admin.products');
-    Route::get('/merchants', [AdminController::class, 'merchants'])->name('admin.merchants');
-    Route::get('/categories', [AdminController::class, 'categories'])->name('admin.categories');
-    Route::get('/settings', [AdminController::class, 'settings'])->name('admin.settings');
-    Route::post('/settings', [AdminController::class, 'updateSettings'])->name('admin.settings.update');
-    
-    // الملف الشخصي للمسؤول
-    Route::get('/profile', [AdminController::class, 'showProfile'])->name('admin.profile');
-    Route::put('/profile', [AdminController::class, 'updateProfile'])->name('admin.profile.update');
-    
-    // إدارة المستخدمين
-    Route::post('/users/{id}/toggle-status', [AdminController::class, 'toggleUserStatus'])->name('admin.user.toggle-status');
-    Route::delete('/users/{id}', [AdminController::class, 'deleteUser'])->name('admin.user.delete');
-    Route::get('/users/{id}', [AdminController::class, 'viewUser'])->name('admin.user.view');
-    
-    // إدارة المنتجات
-    Route::post('/products/{id}/toggle-status', [AdminController::class, 'toggleProductStatus'])->name('admin.product.toggle-status');
-    Route::delete('/products/{id}', [AdminController::class, 'deleteProduct'])->name('admin.product.delete');
-    
-    // إدارة التجار
-    Route::post('/merchants/{id}/toggle-status', [AdminController::class, 'toggleMerchantStatus'])->name('admin.merchant.toggle-status');
-    Route::delete('/merchants/{id}', [AdminController::class, 'deleteMerchant'])->name('admin.merchant.delete');
-    Route::get('/merchants/{id}/store', [AdminController::class, 'viewMerchantStore'])->name('admin.merchant.store');
-    
-    // تقارير الاشتراكات
-    Route::get('/subscriptions', [AdminController::class, 'subscriptions'])->name('admin.subscriptions');
-    Route::get('/revenue', [AdminController::class, 'revenue'])->name('admin.revenue');
-});
-
-// التخفيضات
-Route::get('/discounts', [DiscountController::class, 'discounts'])->name('discounts');
-Route::get('/discounts/category/{categorySlug}', [DiscountController::class, 'categoryDiscounts'])->name('discounts.category');
-
-// الشات العالمي
-Route::middleware(['auth'])->prefix('chat')->group(function () {
-    Route::get('/global', [ChatController::class, 'globalChat'])->name('chat.global');
-    Route::post('/global/send', [ChatController::class, 'sendGlobalMessage'])->name('chat.global.send');
-    Route::get('/global/messages', [ChatController::class, 'getGlobalMessages'])->name('chat.global.messages');
-});
-
-// الملف الشخصي وإدارة الحساب
-Route::middleware(['auth'])->group(function () {
-    Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
-    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::get('/change-password', [ProfileController::class, 'showChangePassword'])->name('change-password');
-    Route::post('/change-password', [ProfileController::class, 'changePassword'])->name('change-password.update');
-    Route::get('/chat', [ProfileController::class, 'showChat'])->name('chat');
-});
-
-// المنتجات (تحتاج مصادقة) - مسارات مشتركة
-Route::middleware(['auth'])->group(function () {
-    Route::post('/products', [ProductController::class, 'store'])->name('products.store');
-    Route::get('/products/{id}/edit', [ProductController::class, 'edit'])->name('products.edit');
-    Route::put('/products/{id}', [ProductController::class, 'update'])->name('products.update');
-    Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('products.destroy');
-});
+// الخدمات (العامة)
+Route::view('/services/cooking', 'services.cooking')->name('services.cooking');
+Route::view('/services/vegetables', 'services.vegetables')->name('services.vegetables');
+Route::view('/services/transport', 'services.transport')->name('services.transport');
+Route::view('/services/jobs', 'services.jobs')->name('services.jobs');
+Route::view('/services/hire-worker', 'services.hire-worker')->name('services.hire-worker');
+Route::view('/services/hire-technician', 'services.hire-technician')->name('services.hire-technician');
+Route::view('/services/cleaning-company', 'services.cleaning-company')->name('services.cleaning-company');
 
 // صفحات إضافية
 Route::view('/about', 'about')->name('about');
@@ -164,26 +154,17 @@ Route::view('/contact', 'contact')->name('contact');
 Route::view('/privacy', 'privacy')->name('privacy');
 Route::view('/terms', 'terms')->name('terms');
 
-// صفحة اختبار الدفع
+// صفحة الألوان (للاختبار)
+Route::view('/colors-preview', 'colors-preview')->name('colors-preview');
+
+// البحث
+Route::get('/search/products', [SearchController::class, 'searchProducts'])->name('search.products');
+Route::get('/search/merchants', [SearchController::class, 'searchMerchants'])->name('search.merchants');
+Route::get('/search/discounts', [SearchController::class, 'searchDiscounts'])->name('search.discounts');
+Route::get('/search/used-products', [SearchController::class, 'searchUsedProducts'])->name('search.used-products');
+Route::get('/search/services', [SearchController::class, 'searchServices'])->name('search.services');
+
+// اختبار الدفع
 Route::get('/test-payment', function() {
     return view('test-payment');
-});
-
-// إضافة هذه المسارات في ملف routes/web.php
-
-
-
-Route::middleware(['auth'])->group(function () {
-    Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
-    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::get('/change-password', [ProfileController::class, 'showChangePassword'])->name('change-password');
-    Route::post('/change-password', [ProfileController::class, 'changePassword'])->name('change-password.update');
-    Route::get('/chat', [ProfileController::class, 'showChat'])->name('chat');
-});
-
-// للمسؤولين فقط
-Route::middleware(['auth'])->prefix('admin')->group(function () {
-    // ... المسارات الحالية ...
-    Route::get('/profile', [AdminController::class, 'showProfile'])->name('admin.profile');
-    Route::put('/profile', [AdminController::class, 'updateProfile'])->name('admin.profile.update');
 });

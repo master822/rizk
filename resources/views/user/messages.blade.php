@@ -4,22 +4,30 @@
 
 @section('content')
 <div class="container py-4">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="section-title gradient-text">💬 الرسائل</h1>
-            <p class="text-muted">إدارة محادثاتك مع التجار والمستخدمين الآخرين</p>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-12">
-            <div class="animated-card text-center py-5">
-                <i class="fas fa-comments fa-4x text-muted mb-3"></i>
-                <h4 class="text-muted">نظام الرسائل قيد التطوير</h4>
-                <p class="text-muted">سيتم إضافة نظام المحادثات قريباً</p>
-                <a href="{{ url('/user/dashboard') }}" class="btn btn-modern">العودة للوحة التحكم</a>
+    <h4 class="section-title-rizk">الرسائل</h4>
+    <div class="card-rizk p-3">
+        @forelse($messages as $message)
+        <div class="border-bottom py-2 {{ !$message->is_read ? 'bg-gold-gradient bg-opacity-10' : '' }}">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <strong style="color: var(--text-primary);">{{ $message->sender->name ?? 'غير معروف' }}</strong>
+                    <p style="color: var(--text-muted);">{{ $message->message }}</p>
+                </div>
+                <div>
+                    <small style="color: var(--text-muted);">{{ $message->created_at->diffForHumans() }}</small>
+                    @if(!$message->is_read)
+                        <form action="{{ route('user.messages.read', $message->id) }}" method="POST" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-rizk-primary">تحديد كمقروء</button>
+                        </form>
+                    @endif
+                </div>
             </div>
         </div>
+        @empty
+        <p style="color: var(--text-muted);">لا توجد رسائل</p>
+        @endforelse
     </div>
+    {{ $messages->links() }}
 </div>
 @endsection
