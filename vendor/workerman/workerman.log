@@ -1,6 +1,0 @@
-2026-07-17 23:02:23 pid:17714 Workerman[/home/rmb/syrians-store/vendor/nativephp/mobile/src/Commands/../../resources/jump/websocket-server.php] start in DEBUG mode
-2026-07-17 23:16:53 pid:17714 Workerman[websocket-server.php] stopping ...
-2026-07-17 23:16:53 pid:17714 Workerman[websocket-server.php] stopping ...
-2026-07-17 23:16:53 pid:17714 worker[JumpBridge:17715] exit with status 1
-2026-07-17 23:16:53 pid:17714 worker[JumpViteProxy:17716] exit with status 1
-2026-07-17 23:16:53 pid:17714 Workerman[websocket-server.php] has been stopped
