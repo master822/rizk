@@ -154,29 +154,54 @@ class MerchantDashboardController extends Controller
         return view('merchant.create-discount', compact('products'));
     }
 
-    public function storeDiscount(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'percentage' => 'required|numeric|min:1|max:100',
-            'product_id' => 'required|exists:products,id',
-        ]);
+public function storeDiscount(Request $request)
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'description' => 'nullable|string',
+        'percentage' => 'required|numeric|min:1|max:100',
+        'product_id' => 'required|exists:products,id',
+    ]);
 
-        $product = Product::where('id', $request->product_id)->where('user_id', Auth::id())->firstOrFail();
+    $product = Product::where('id', $request->product_id)->where('user_id', Auth::id())->firstOrFail();
 
-        Discount::create([
-            'name' => $request->name,
-            'description' => $request->description,
-            'percentage' => $request->percentage,
-            'is_active' => true,
-            'product_id' => $product->id,
-            'merchant_id' => Auth::id(),
-        ]);
+    Discount::create([
+        'name' => $request->name,
+        'description' => $request->description,
+        'percentage' => $request->percentage,
+        'is_active' => true,
+        'product_id' => $product->id,
+        'merchant_id' => Auth::id(),
+        'start_date' => now(),
+        'end_date' => now()->addDays(30),
+    ]);
 
-        return redirect()->route('merchant.discounts')->with('success', 'تم إنشاء التخفيض بنجاح');
-    }
+    return redirect()->route('merchant.discounts')->with('success', 'تم إنشاء التخفيض بنجاح');
+}
+public function editDiscount($id)
+{
+    $discount = Discount::where('id', $id)->where('merchant_id', Auth::id())->firstOrFail();
+    return view('merchant.edit-discount', compact('discount'));
+}
 
+public function updateDiscount(Request $request, $id)
+{
+    $discount = Discount::where('id', $id)->where('merchant_id', Auth::id())->firstOrFail();
+    
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'description' => 'nullable|string',
+        'percentage' => 'required|numeric|min:1|max:100',
+    ]);
+
+    $discount->update([
+        'name' => $request->name,
+        'description' => $request->description,
+        'percentage' => $request->percentage,
+    ]);
+
+    return redirect()->route('merchant.discounts')->with('success', 'تم تحديث التخفيض بنجاح');
+}
     public function deleteDiscount($id)
     {
         $discount = Discount::where('id', $id)->where('merchant_id', Auth::id())->firstOrFail();
@@ -292,50 +317,46 @@ class MerchantDashboardController extends Controller
         return view('merchant.profile', compact('user'));
     }
 
-    public function updateProfile(Request $request)
-    {
-        $user = Auth::user();
-        
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'nullable|string|max:20',
-            'city' => 'nullable|string|max:255',
-            'store_name' => 'nullable|string|max:255',
-            'store_description' => 'nullable|string',
-            'store_phone' => 'nullable|string|max:20',
-            'store_city' => 'nullable|string|max:255',
-            'avatar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'store_logo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-        ]);
+public function updateProfile(Request $request)
+{
+    $user = Auth::user();
+    
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'phone' => 'nullable|string|max:20',
+        'city' => 'nullable|string|max:255',
+        'store_name' => 'nullable|string|max:255',
+        'store_description' => 'nullable|string',
+        'avatar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        'store_logo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    ]);
 
-        $user->name = $request->name;
-        $user->phone = $request->phone;
-        $user->city = $request->city;
-        $user->store_name = $request->store_name;
-        $user->store_description = $request->store_description;
-        $user->store_phone = $request->store_phone;
-        $user->store_city = $request->store_city;
+    $user->name = $request->name;
+    $user->phone = $request->phone;
+    $user->city = $request->city;
+    $user->store_name = $request->store_name;
+    $user->store_description = $request->store_description;
 
-        if ($request->hasFile('avatar')) {
-            if ($user->avatar) {
-                Storage::disk('public')->delete($user->avatar);
-            }
-            $path = $request->file('avatar')->store('avatars', 'public');
-            $user->avatar = $path;
+    if ($request->hasFile('avatar')) {
+        if ($user->avatar) {
+            Storage::disk('public')->delete($user->avatar);
         }
-
-        if ($request->hasFile('store_logo')) {
-            if ($user->store_logo) {
-                Storage::disk('public')->delete($user->store_logo);
-            }
-            $path = $request->file('store_logo')->store('store-logos', 'public');
-            $user->store_logo = $path;
-        }
-
-        $user->save();
-
-        return back()->with('success', 'تم تحديث الملف الشخصي بنجاح');
+        $path = $request->file('avatar')->store('avatars', 'public');
+        $user->avatar = $path;
     }
+
+    if ($request->hasFile('store_logo')) {
+        if ($user->store_logo) {
+            Storage::disk('public')->delete($user->store_logo);
+        }
+        $path = $request->file('store_logo')->store('store-logos', 'public');
+        $user->store_logo = $path;
+    }
+
+    $user->save();
+
+    return back()->with('success', 'تم تحديث الملف الشخصي بنجاح');
+}
 
     public function changePassword(Request $request)
     {

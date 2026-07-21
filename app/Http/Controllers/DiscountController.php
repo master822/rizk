@@ -2,48 +2,37 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Discount;
 use Illuminate\Http\Request;
-use App\Models\Product;
-use App\Models\Category;
 
 class DiscountController extends Controller
 {
-    public function discounts(Request $request)
+    public function discounts()
     {
-        $selectedCategory = $request->get('category');
+        $discounts = Discount::where('is_active', 1)
+                           ->with(['product', 'merchant'])
+                           ->orderBy('created_at', 'desc')
+                           ->paginate(12);
         
-        $productsQuery = Product::where('discount_percentage', '>', 0)
-            ->where('status', 'active')
-            ->with(['user', 'category']);
-        
-        if ($selectedCategory && $selectedCategory !== 'all') {
-            $productsQuery->whereHas('category', function($query) use ($selectedCategory) {
-                $query->where('slug', $selectedCategory);
-            });
-        }
-        
-        $products = $productsQuery->latest()->paginate(12);
-        $categories = Category::where('is_active', true)->get();
-        
-        return view('discounts', compact('products', 'categories', 'selectedCategory'));
+        return view('discounts.index', compact('discounts'));
+    }
+
+    public function show($id)
+    {
+        $discount = Discount::with(['product', 'merchant'])->findOrFail($id);
+        return view('discounts.show', compact('discount'));
     }
 
     public function categoryDiscounts($categorySlug)
     {
-        $category = Category::where('slug', $categorySlug)->firstOrFail();
+        // يمكن إضافة فلتر حسب التصنيف لاحقاً
+        $discounts = Discount::where('is_active', 1)
+                           ->with(['product', 'merchant'])
+                           ->whereHas('product', function($query) use ($categorySlug) {
+                               $query->where('category', $categorySlug);
+                           })
+                           ->paginate(12);
         
-        $products = Product::where('discount_percentage', '>', 0)
-            ->where('status', 'active')
-            ->whereHas('category', function($query) use ($categorySlug) {
-                $query->where('slug', $categorySlug);
-            })
-            ->with(['user', 'category'])
-            ->latest()
-            ->paginate(12);
-            
-        $categories = Category::where('is_active', true)->get();
-        $selectedCategory = $categorySlug;
-        
-        return view('discounts', compact('products', 'categories', 'selectedCategory', 'category'));
+        return view('discounts.index', compact('discounts'));
     }
 }

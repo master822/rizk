@@ -2,62 +2,137 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Message;
 use App\Models\Product;
-use App\Models\User;
+use App\Models\Message;
+use App\Models\Notification;
+use App\Models\Job;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class MessageController extends Controller
 {
-    public function contactMerchant(Request $request, $productId)
+    public function __construct()
     {
-        // إذا كان productId = 0 فهو رسالة مباشرة بين مستخدمين
-        if ($productId == 0 && $request->has('receiver_id')) {
-            $request->validate([
-                'message' => 'required|string|max:1000',
-                'receiver_id' => 'required|exists:users,id'
-            ]);
-
-            // إنشاء رسالة مباشرة بين مستخدمين
-            Message::create([
-                'sender_id' => Auth::id(),
-                'receiver_id' => $request->receiver_id,
-                'product_id' => null,
-                'message' => $request->message,
-                'is_read' => false
-            ]);
-
-            return back()->with('success', 'تم إرسال رسالتك بنجاح!');
-        }
-
-        // رسالة عادية عن منتج
-        $product = Product::with('user')->findOrFail($productId);
-        
-        $request->validate([
-            'message' => 'required|string|max:1000'
-        ]);
-
-        // إنشاء رسالة جديدة
-        Message::create([
-            'sender_id' => Auth::id(),
-            'receiver_id' => $product->user_id,
-            'product_id' => $productId,
-            'message' => $request->message,
-            'is_read' => false
-        ]);
-
-        return back()->with('success', 'تم إرسال رسالتك إلى: ' . $product->user->name);
+        $this->middleware('auth');
     }
 
+    public function contactMerchantForm($productId)
+    {
+        $product = Product::findOrFail($productId);
+        
+        if ($product->user_id == Auth::id()) {
+            return redirect()->route('products.show', $product->id)
+                            ->with('error', 'لا يمكنك مراسلة نفسك!');
+        }
+        
+        return view('messages.contact', compact('product'));
+    }
+
+    public function contactMerchant(Request $request, $productId)
+    {
+        $product = Product::findOrFail($productId);
+        
+        if ($product->user_id == Auth::id()) {
+            return redirect()->route('products.show', $product->id)
+                            ->with('error', 'لا يمكنك مراسلة نفسك!');
+        }
+        
+        $request->validate([
+            'message' => 'required|string|max:1000',
+        ]);
+
+        $message = Message::create([
+            'sender_id' => Auth::id(),
+            'receiver_id' => $product->user_id,
+            'product_id' => $product->id,
+            'message' => $request->message,
+            'is_read' => false,
+        ]);
+
+        // إرسال إشعار للمستلم
+        try {
+            Notification::create([
+                'user_id' => $product->user_id,
+                'sender_id' => Auth::id(),
+                'type' => 'message',
+                'title' => 'رسالة جديدة',
+                'message' => 'لديك رسالة جديدة من ' . Auth::user()->name . ' بخصوص منتج: ' . $product->name,
+                'link' => route('messages.conversation', Auth::id()),
+                'is_read' => false,
+            ]);
+        } catch (\Exception $e) {
+            // إذا فشل الإشعار، نستمر دون إشعار
+        }
+
+        return redirect()->route('products.show', $product->id)
+                        ->with('success', 'تم إرسال رسالتك بنجاح!');
+    }
+
+    // ===== دوال التواصل لفرص العمل =====
+    public function contactJobForm($jobId)
+    {
+        $job = Job::findOrFail($jobId);
+        
+        if ($job->user_id == Auth::id()) {
+            return redirect()->route('jobs.show', $job->id)
+                            ->with('error', 'لا يمكنك مراسلة نفسك!');
+        }
+        
+        return view('messages.contact-job', compact('job'));
+    }
+
+    public function contactJob(Request $request, $jobId)
+    {
+        $job = Job::findOrFail($jobId);
+        
+        if ($job->user_id == Auth::id()) {
+            return redirect()->route('jobs.show', $job->id)
+                            ->with('error', 'لا يمكنك مراسلة نفسك!');
+        }
+        
+        $request->validate([
+            'message' => 'required|string|max:1000',
+        ]);
+
+        Message::create([
+            'sender_id' => Auth::id(),
+            'receiver_id' => $job->user_id,
+            'message' => 'بخصوص فرصة العمل: ' . $job->title . "\n\n" . $request->message,
+            'is_read' => false,
+        ]);
+
+        // إرسال إشعار للمستلم
+        try {
+            Notification::create([
+                'user_id' => $job->user_id,
+                'sender_id' => Auth::id(),
+                'type' => 'message',
+                'title' => 'رسالة جديدة بخصوص فرصة عمل',
+                'message' => 'لديك رسالة جديدة من ' . Auth::user()->name . ' بخصوص فرصة العمل: ' . $job->title,
+                'link' => route('messages.conversation', Auth::id()),
+                'is_read' => false,
+            ]);
+        } catch (\Exception $e) {
+            // إذا فشل الإشعار، نستمر دون إشعار
+        }
+
+        return redirect()->route('jobs.show', $job->id)
+                        ->with('success', 'تم إرسال رسالتك بنجاح!');
+    }
+
+    // ===== دوال المحادثات =====
     public function inbox()
     {
         $messages = Message::where('receiver_id', Auth::id())
                           ->with(['sender', 'product'])
                           ->orderBy('created_at', 'desc')
-                          ->get();
-
-        return view('messages.inbox', compact('messages'));
+                          ->paginate(20);
+        
+        $unreadCount = Message::where('receiver_id', Auth::id())
+                              ->where('is_read', false)
+                              ->count();
+        
+        return view('messages.inbox', compact('messages', 'unreadCount'));
     }
 
     public function sent()
@@ -65,121 +140,82 @@ class MessageController extends Controller
         $messages = Message::where('sender_id', Auth::id())
                           ->with(['receiver', 'product'])
                           ->orderBy('created_at', 'desc')
-                          ->get();
-
+                          ->paginate(20);
+        
         return view('messages.sent', compact('messages'));
     }
 
-    public function markAsRead($id)
-    {
-        $message = Message::where('id', $id)
-                         ->where('receiver_id', Auth::id())
-                         ->firstOrFail();
-
-        $message->update(['is_read' => true]);
-
-        return back()->with('success', 'تم تحديد الرسالة كمقروءة');
-    }
-
-    public function getUnreadCount()
-    {
-        $count = Message::where('receiver_id', Auth::id())
-                       ->where('is_read', false)
-                       ->count();
-
-        return $count;
-    }
-
-    // دالة جديدة للرد المباشر
-    public function replyToMessage(Request $request, $messageId)
-    {
-        $originalMessage = Message::findOrFail($messageId);
-        
-        $request->validate([
-            'message' => 'required|string|max:1000'
-        ]);
-
-        // إنشاء رسالة رد
-        Message::create([
-            'sender_id' => Auth::id(),
-            'receiver_id' => $originalMessage->sender_id,
-            'product_id' => $originalMessage->product_id,
-            'message' => $request->message,
-            'is_read' => false
-        ]);
-
-        return back()->with('success', 'تم إرسال ردك بنجاح!');
-    }
-
-    // دالة جديدة لإظهار محادثة معينة
     public function showConversation($userId)
     {
-        $otherUser = User::findOrFail($userId);
-        
-        // جلب جميع الرسائل بين المستخدم الحالي والمستخدم الآخر
         $messages = Message::where(function($query) use ($userId) {
                             $query->where('sender_id', Auth::id())
                                   ->where('receiver_id', $userId);
-                        })
-                        ->orWhere(function($query) use ($userId) {
+                        })->orWhere(function($query) use ($userId) {
                             $query->where('sender_id', $userId)
                                   ->where('receiver_id', Auth::id());
-                        })
-                        ->with(['sender', 'receiver', 'product'])
-                        ->orderBy('created_at', 'asc')
+                        })->orderBy('created_at', 'asc')
                         ->get();
-
-        // تحديد الرسائل كمقروءة
+        
         Message::where('sender_id', $userId)
                ->where('receiver_id', Auth::id())
                ->where('is_read', false)
                ->update(['is_read' => true]);
-
+        
+        $otherUser = \App\Models\User::findOrFail($userId);
+        
         return view('messages.conversation', compact('messages', 'otherUser'));
     }
 
-    // دالة جديدة لإرسال رسالة في محادثة
     public function sendMessageInConversation(Request $request, $userId)
     {
         $request->validate([
-            'message' => 'required|string|max:1000'
+            'message' => 'required|string|max:1000',
         ]);
 
-        // إنشاء رسالة جديدة في المحادثة
         Message::create([
             'sender_id' => Auth::id(),
             'receiver_id' => $userId,
-            'product_id' => $request->product_id,
             'message' => $request->message,
-            'is_read' => false
+            'is_read' => false,
         ]);
 
-        return back()->with('success', 'تم إرسال رسالتك بنجاح!');
+        return redirect()->route('messages.conversation', $userId)
+                        ->with('success', 'تم إرسال الرسالة بنجاح');
     }
 
-    // دالة جديدة للتواصل مع بائع منتج مستعمل
-    public function contactProductSeller(Request $request, $productId)
+    public function markAsRead($id)
     {
-        $product = Product::with('user')->findOrFail($productId);
+        $message = Message::where('id', $id)->where('receiver_id', Auth::id())->firstOrFail();
+        $message->is_read = true;
+        $message->save();
         
-        // التحقق من أن المنتج مستعمل ومملوك لمستخدم عادي
-        if (!$product->is_used || $product->user->user_type !== 'user') {
-            return back()->with('error', 'لا يمكن التواصل مع بائع هذا المنتج');
-        }
+        return back()->with('success', 'تم تحديد الرسالة كمقروءة');
+    }
 
-        $request->validate([
-            'message' => 'required|string|max:1000'
-        ]);
+    public function deleteMessage($id)
+    {
+        $message = Message::where('id', $id)
+                         ->where(function($query) {
+                             $query->where('sender_id', Auth::id())
+                                   ->orWhere('receiver_id', Auth::id());
+                         })->firstOrFail();
+        
+        $message->delete();
+        
+        return back()->with('success', 'تم حذف الرسالة بنجاح');
+    }
 
-        // إنشاء رسالة للمستخدم البائع
-        Message::create([
-            'sender_id' => Auth::id(),
-            'receiver_id' => $product->user_id,
-            'product_id' => $productId,
-            'message' => $request->message,
-            'is_read' => false
-        ]);
-
-        return back()->with('success', 'تم إرسال رسالتك إلى البائع: ' . $product->user->name);
+    public function clearConversation($userId)
+    {
+        Message::where(function($query) use ($userId) {
+                    $query->where('sender_id', Auth::id())
+                          ->where('receiver_id', $userId);
+                })->orWhere(function($query) use ($userId) {
+                    $query->where('sender_id', $userId)
+                          ->where('receiver_id', Auth::id());
+                })->delete();
+        
+        return redirect()->route('messages.inbox')
+                        ->with('success', 'تم مسح المحادثة بنجاح');
     }
 }

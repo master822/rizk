@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\Category;
 use App\Models\Message;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -38,42 +39,51 @@ class UserDashboardController extends Controller
         return view('products.create-used', compact('categories'));
     }
 
-    public function storeProduct(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'required|string',
-            'price' => 'required|numeric|min:0',
-            'category_id' => 'required|exists:categories,id',
-            'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
-            'condition' => 'required|string|max:255',
+public function storeProduct(Request $request)
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'description' => 'required|string',
+        'price' => 'required|numeric|min:0',
+        'condition' => 'required|string|max:255',
+        'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+    ]);
+
+    $user = Auth::user();
+
+    // التحقق من وجود فئة
+    $category = \App\Models\Category::first();
+    if (!$category) {
+        $category = \App\Models\Category::create([
+            'name' => 'منتجات عامة',
+            'slug' => 'general',
+            'is_active' => 1,
         ]);
-
-        $user = Auth::user();
-        
-        $product = new Product();
-        $product->name = $request->name;
-        $product->description = $request->description;
-        $product->price = $request->price;
-        $product->category_id = $request->category_id;
-        $product->user_id = $user->id;
-        $product->condition = $request->condition;
-        $product->is_used = true;
-        $product->status = 'active';
-
-        if ($request->hasFile('images')) {
-            $imagePaths = [];
-            foreach ($request->file('images') as $image) {
-                $path = $image->store('products', 'public');
-                $imagePaths[] = $path;
-            }
-            $product->images = json_encode($imagePaths);
-        }
-
-        $product->save();
-
-        return redirect()->route('user.products')->with('success', 'تم إضافة المنتج بنجاح');
     }
+    
+    $product = new Product();
+    $product->name = $request->name;
+    $product->description = $request->description;
+    $product->price = $request->price;
+    $product->condition = $request->condition;
+    $product->category_id = $category->id;
+    $product->user_id = $user->id;
+    $product->is_used = true;
+    $product->status = 'active';
+
+    if ($request->hasFile('images')) {
+        $imagePaths = [];
+        foreach ($request->file('images') as $image) {
+            $path = $image->store('products', 'public');
+            $imagePaths[] = $path;
+        }
+        $product->images = json_encode($imagePaths);
+    }
+
+    $product->save();
+
+    return redirect()->route('user.products')->with('success', 'تم إضافة المنتج بنجاح');
+}
 
     public function editProduct($id)
     {
@@ -164,34 +174,33 @@ class UserDashboardController extends Controller
         $user = Auth::user();
         return view('user.profile', compact('user'));
     }
+public function updateProfile(Request $request)
+{
+    $user = Auth::user();
+    
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'phone' => 'nullable|string|max:20',
+        'city' => 'nullable|string|max:255',
+        'avatar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    ]);
 
-    public function updateProfile(Request $request)
-    {
-        $user = Auth::user();
-        
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'nullable|string|max:20',
-            'city' => 'nullable|string|max:255',
-            'avatar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-        ]);
+    $user->name = $request->name;
+    $user->phone = $request->phone;
+    $user->city = $request->city;
 
-        $user->name = $request->name;
-        $user->phone = $request->phone;
-        $user->city = $request->city;
-
-        if ($request->hasFile('avatar')) {
-            if ($user->avatar) {
-                Storage::disk('public')->delete($user->avatar);
-            }
-            $path = $request->file('avatar')->store('avatars', 'public');
-            $user->avatar = $path;
+    if ($request->hasFile('avatar')) {
+        if ($user->avatar) {
+            Storage::disk('public')->delete($user->avatar);
         }
-
-        $user->save();
-
-        return back()->with('success', 'تم تحديث الملف الشخصي بنجاح');
+        $path = $request->file('avatar')->store('avatars', 'public');
+        $user->avatar = $path;
     }
+
+    $user->save();
+
+    return back()->with('success', 'تم تحديث الملف الشخصي بنجاح');
+}
 
     public function changePassword(Request $request)
     {

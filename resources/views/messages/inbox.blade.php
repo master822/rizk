@@ -1,92 +1,70 @@
 @extends('layouts.app')
 
-@section('title', 'صندوق الوارد - الرسائل')
+@section('title', 'الرسائل الواردة')
 
 @section('content')
 <div class="container py-4">
-    <div class="row">
-        <div class="col-12">
-            <h1 class="text-primary mb-4">
-                <i class="fas fa-inbox me-2"></i>صندوق الوارد
-            </h1>
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="section-title-rizk">الرسائل الواردة</h4>
+        <span class="badge-rizk badge-rizk-gold">{{ $unreadCount ?? 0 }} غير مقروءة</span>
     </div>
-
-    <div class="row">
-        <div class="col-12">
-            @if($messages->count() > 0)
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">الرسائل الواردة</h5>
+    
+    <div class="card-rizk p-3">
+        @forelse($messages as $message)
+            <div class="message-item border-bottom py-3 {{ !$message->is_read ? 'bg-gold-gradient bg-opacity-10' : '' }}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="d-flex gap-3">
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode($message->sender->name ?? '') }}&size=40&background=d4af37&color=fff" 
+                             class="rounded-circle" width="40" height="40">
+                        <div>
+                            <h6 style="color: var(--text-primary); margin: 0;">
+                                {{ $message->sender->name ?? 'غير معروف' }}
+                                @if(!$message->is_read)
+                                    <span class="badge bg-danger ms-2" style="font-size: 0.6rem;">جديد</span>
+                                @endif
+                            </h6>
+                            <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">
+                                {{ Str::limit($message->message, 100) }}
+                            </p>
+                            @if($message->product)
+                                <small style="color: var(--text-muted);">
+                                    <i class="fas fa-box me-1"></i>{{ $message->product->name }}
+                                </small>
+                            @endif
+                        </div>
                     </div>
-                    <div class="card-body p-0">
-                        <div class="list-group list-group-flush">
-                            @foreach($messages as $message)
-                                <div class="list-group-item {{ !$message->is_read ? 'bg-light' : '' }}">
-                                    <div class="row align-items-center">
-                                        <div class="col-md-8">
-                                            <div class="d-flex align-items-center">
-                                                @if($message->sender->avatar)
-                                                    <img src="{{ asset('storage/' . $message->sender->avatar) }}" 
-                                                         alt="{{ $message->sender->name }}" 
-                                                         class="rounded-circle me-3"
-                                                         style="width: 45px; height: 45px; object-fit: cover;">
-                                                @else
-                                                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3"
-                                                         style="width: 45px; height: 45px;">
-                                                        <i class="fas fa-user"></i>
-                                                    </div>
-                                                @endif
-                                                <div>
-                                                    <h6 class="mb-1 {{ !$message->is_read ? 'fw-bold' : '' }}">
-                                                        {{ $message->sender->name }}
-                                                        @if($message->sender->user_type === 'merchant')
-                                                            <small class="text-muted">(تاجر)</small>
-                                                        @endif
-                                                    </h6>
-                                                    <p class="mb-1 text-muted">{{ Str::limit($message->message, 100) }}</p>
-                                                    @if($message->product)
-                                                        <small class="text-info">
-                                                            <i class="fas fa-shopping-bag me-1"></i>
-                                                            عن منتج: {{ $message->product->name }}
-                                                        </small>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4 text-md-end">
-                                            <small class="text-muted d-block">
-                                                {{ $message->created_at->diffForHumans() }}
-                                            </small>
-                                            <div class="mt-2">
-                                                <a href="{{ route('messages.conversation', $message->sender_id) }}" 
-                                                   class="btn btn-primary btn-sm me-2">
-                                                    <i class="fas fa-reply me-1"></i>رد
-                                                </a>
-                                                @if(!$message->is_read)
-                                                    <form action="{{ route('messages.markAsRead', $message->id) }}" method="POST" class="d-inline">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-outline-secondary btn-sm">
-                                                            <i class="fas fa-check me-1"></i>تحديد كمقروء
-                                                        </button>
-                                                    </form>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
+                    <div class="text-end">
+                        <small style="color: var(--text-muted);">{{ $message->created_at->diffForHumans() }}</small>
+                        <div class="mt-1">
+                            <a href="{{ route('messages.conversation', $message->sender_id) }}" 
+                               class="btn btn-rizk-primary btn-sm">
+                                <i class="fas fa-reply me-1"></i>رد
+                            </a>
+                            @if(!$message->is_read)
+                                <form action="{{ route('messages.markAsRead', $message->id) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    <button type="submit" class="btn btn-rizk-outline btn-sm">تحديد كمقروء</button>
+                                </form>
+                            @endif
+                            <form action="{{ route('messages.delete', $message->id) }}" method="POST" class="d-inline">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('هل أنت متأكد؟')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
-            @else
-                <div class="text-center py-5">
-                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                    <h4 class="text-muted">لا توجد رسائل</h4>
-                    <p class="text-muted">لم تتلق أي رسائل بعد</p>
-                </div>
-            @endif
-        </div>
+            </div>
+        @empty
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-3x gold-text mb-3"></i>
+                <p style="color: var(--text-muted);">لا توجد رسائل واردة</p>
+            </div>
+        @endforelse
     </div>
+    
+    {{ $messages->links() }}
 </div>
 @endsection

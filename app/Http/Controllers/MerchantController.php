@@ -4,156 +4,78 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Product;
+use App\Models\Category;
 use App\Models\Rating;
-use App\Models\Message;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class MerchantController extends Controller
 {
-    public function dashboard()
+    public function merchantsList()
     {
-        $user = Auth::user();
+        $merchants = User::where('user_type', 'merchant')
+                        ->where('is_active', 1)
+                        ->with(['ratings', 'products'])
+                        ->withCount('products')
+                        ->paginate(12);
         
-        if ($user->user_type !== 'merchant') {
-            return redirect('/')->with('error', 'ليس لديك صلاحية للوصول إلى هذه الصفحة');
-        }
-
-        $products = Product::where('user_id', $user->id)->get();
-        
-        // الإحصائيات
-        $stats = [
-            'total_products' => $products->count(),
-            'active_products' => $products->where('status', 'active')->count(),
-            'total_views' => $products->sum('views'),
-            'total_ratings' => Rating::where('merchant_id', $user->id)->count(),
-            'average_rating' => Rating::where('merchant_id', $user->id)->avg('rating') ?? 0,
-        ];
-        
-        // الرسائل
-        $unreadMessagesCount = Message::where('receiver_id', $user->id)
-            ->where('is_read', false)
-            ->count();
-            
-        $recentMessages = Message::where('receiver_id', $user->id)
-            ->with(['sender', 'product'])
-            ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get();
-
-        // التقييمات
-        $newRatingsCount = Rating::where('merchant_id', $user->id)
-            ->where('created_at', '>=', now()->subDays(7))
-            ->count();
-            
-        $recentRatings = Rating::where('merchant_id', $user->id)
-            ->with('user')
-            ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get();
-
-        $allRatings = Rating::where('merchant_id', $user->id)
-            ->with('user')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        // إضافة debugging للرسائل
-        $sessionMessages = [
-            'success' => session('success'),
-            'error' => session('error'),
-            'warning' => session('warning')
-        ];
-        
-        \Illuminate\Support\Facades\Log::info('🔹 Merchant Dashboard Session Messages', $sessionMessages);
-        
-        return view('merchant.dashboard', compact(
-            'user', 
-            'products', 
-            'stats',
-            'unreadMessagesCount',
-            'recentMessages',
-            'newRatingsCount',
-            'recentRatings',
-            'allRatings'
-        ));
-    }
-
-    public function myProducts()
-    {
-        $user = Auth::user();
-        $products = Product::where('user_id', $user->id)->latest()->get();
-        
-        return view('merchant.products', compact('user', 'products'));
-    }
-
-    public function merchantsList(Request $request)
-    {
-        $category = $request->get('category');
-        
-        $query = User::where('user_type', 'merchant')
-                    ->where('is_active', true)
-                    ->withCount(['products' => function($query) {
-                        $query->where('status', 'active');
-                    }])
-                    ->with(['ratings']);
-
-        if ($category && in_array($category, ['clothes', 'electronics', 'home', 'grocery'])) {
-            $query->where('store_category', $category);
-        }
-
-        $merchants = $query->paginate(12);
-
-        return view('merchants.index', compact('merchants', 'category'));
+        return view('merchants.index', compact('merchants'));
     }
 
     public function show($id)
     {
-        $merchant = User::where('id', $id)
-                        ->where('user_type', 'merchant')
-                        ->where('is_active', true)
-                        ->withCount(['products' => function($query) {
-                            $query->where('status', 'active');
-                        }])
-                        ->with(['ratings'])
-                        ->firstOrFail();
-
-        $averageRating = $merchant->ratings->avg('rating') ?? 0;
-        $totalRatings = $merchant->ratings->count();
-
-        $products = Product::where('user_id', $id)
-                          ->where('status', 'active')
-                          ->where('is_used', false)
-                          ->with('category')
-                          ->paginate(12);
-
-        return view('merchants.show', compact('merchant', 'products', 'averageRating', 'totalRatings'));
+        $merchant = User::where('user_type', 'merchant')
+                       ->where('is_active', 1)
+                       ->with(['ratings', 'products' => function($query) {
+                           $query->where('status', 'active');
+                       }])
+                       ->findOrFail($id);
+        
+        return view('merchants.show', compact('merchant'));
     }
 
     public function byCategory($category)
     {
         $merchants = User::where('user_type', 'merchant')
-                        ->where('is_active', true)
+                        ->where('is_active', 1)
                         ->where('store_category', $category)
-                        ->withCount(['products' => function($query) {
-                            $query->where('status', 'active');
-                        }])
-                        ->with(['ratings'])
+                        ->with(['ratings', 'products'])
+                        ->withCount('products')
                         ->paginate(12);
-
-        $categoryName = $this->getCategoryName($category);
-
-        return view('merchants.by-category', compact('merchants', 'category', 'categoryName'));
+        
+        return view('merchants.index', compact('merchants'));
     }
 
-    private function getCategoryName($categorySlug)
+    public function dashboard()
+    {
+        $user = Auth::user();
+        $products = Product::where('user_id', $user->id)->count();
+        $ratings = Rating::where('merchant_id', $user->id)->avg('rating') ?? 0;
+        
+        return view('merchant.dashboard', compact('user', 'products', 'ratings'));
+    }
+
+    public function myProducts()
+    {
+        $products = Product::where('user_id', Auth::id())
+                          ->orderBy('created_at', 'desc')
+                          ->paginate(12);
+        
+        return view('merchant.products', compact('products'));
+    }
+
+    public function getCategoryName($categorySlug)
     {
         $categories = [
-            'clothes' => 'ملابس',
-            'electronics' => 'إلكترونيات',
-            'home' => 'أدوات منزلية',
-            'grocery' => 'بقالة'
+            'clothes' => '👗 ملابس',
+            'electronics' => '📱 إلكترونيات',
+            'home' => '🛋️ أدوات منزلية',
+            'grocery' => '🛒 بقالة',
+            'cars' => '🚗 سيارات',
+            'real_estate' => '🏠 عقارات',
+            'cleaning' => '🧹 ورشة تنظيف',
         ];
-
+        
         return $categories[$categorySlug] ?? 'غير معروف';
     }
 }

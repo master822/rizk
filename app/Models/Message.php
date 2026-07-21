@@ -14,7 +14,11 @@ class Message extends Model
         'receiver_id',
         'product_id',
         'message',
-        'is_read'
+        'is_read',
+    ];
+
+    protected $casts = [
+        'is_read' => 'boolean',
     ];
 
     public function sender()

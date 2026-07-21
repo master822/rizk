@@ -23,17 +23,16 @@
                         <input type="number" name="price" class="form-control form-rizk" step="0.01" required>
                     </div>
                     <div class="mb-3">
-                        <label style="color: var(--text-primary);">التصنيف *</label>
-                        <select name="category_id" class="form-select form-rizk" required>
-                            <option value="">اختر التصنيف</option>
-                            @foreach($categories as $category)
-                                <option value="{{ $category->id }}">{{ $category->name }}</option>
-                            @endforeach
+                        <label style="color: var(--text-primary);">حالة المنتج *</label>
+                        <select name="condition" class="form-select form-rizk" required>
+                            <option value="">-- اختر حالة المنتج --</option>
+                            <option value="ممتاز">ممتاز</option>
+                            <option value="جيد جدا">جيد جداً</option>
+                            <option value="جيد">جيد</option>
+                            <option value="مقبول">مقبول</option>
+                            <option value="بحال الجديد">بحال الجديد</option>
+                            <option value="used">مستعمل</option>
                         </select>
-                    </div>
-                    <div class="mb-3">
-                        <label style="color: var(--text-primary);">الحالة *</label>
-                        <input type="text" name="condition" class="form-control form-rizk" placeholder="مثل: ممتاز، جيد، يحتاج صيانة" required>
                     </div>
                     <div class="mb-3">
                         <label style="color: var(--text-primary);">الصور</label>

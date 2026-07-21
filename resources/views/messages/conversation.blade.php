@@ -1,72 +1,64 @@
 @extends('layouts.app')
 
-@section('title', 'المحادثة - ' . $otherUser->name)
+@section('title', 'المحادثة مع ' . $otherUser->name)
 
 @section('content')
 <div class="container py-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex align-items-center mb-4">
-                <a href="{{ route('messages.inbox') }}" class="btn btn-secondary me-3">
-                    <i class="fas fa-arrow-right"></i>
-                </a>
-                <div class="d-flex align-items-center">
-                    @if($otherUser->avatar)
-                        <img src="{{ asset('storage/' . $otherUser->avatar) }}" 
-                             alt="{{ $otherUser->name }}" 
-                             class="rounded-circle me-3"
-                             style="width: 50px; height: 50px; object-fit: cover;">
-                    @else
-                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3"
-                             style="width: 50px; height: 50px;">
-                            <i class="fas fa-user"></i>
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card-rizk">
+                <div class="card-header bg-transparent p-3 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-3">
+                            <img src="https://ui-avatars.com/api/?name={{ urlencode($otherUser->name) }}&size=40&background=d4af37&color=fff" 
+                                 class="rounded-circle" width="40" height="40">
+                            <div>
+                                <h6 style="color: var(--text-primary); margin: 0;">{{ $otherUser->name }}</h6>
+                                <small style="color: var(--text-muted);">{{ $otherUser->store_name ?? 'مستخدم' }}</small>
+                            </div>
                         </div>
-                    @endif
-                    <div>
-                        <h4 class="mb-0">{{ $otherUser->name }}</h4>
-                        @if($otherUser->user_type === 'merchant')
-                            <small class="text-muted">{{ $otherUser->store_name }}</small>
-                        @endif
+                        <div>
+                            <form action="{{ route('messages.clear-conversation', $otherUser->id) }}" method="POST" class="d-inline">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('هل أنت متأكد من مسح المحادثة؟')">
+                                    <i class="fas fa-trash me-1"></i>مسح المحادثة
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body chat-messages" style="height: 500px; overflow-y: auto;">
+                
+                <div class="card-body p-3" style="max-height: 500px; overflow-y: auto; background: var(--bg-body);">
                     @foreach($messages as $message)
-                        <div class="message mb-3 {{ $message->sender_id == Auth::id() ? 'sent' : 'received' }}">
-                            <div class="message-content {{ $message->sender_id == Auth::id() ? 'bg-primary text-white' : 'bg-light' }} rounded p-3">
-                                <p class="mb-1">{{ $message->message }}</p>
-                                <small class="{{ $message->sender_id == Auth::id() ? 'text-light' : 'text-muted' }}">
-                                    {{ $message->created_at->format('h:i A') }}
+                        <div class="message-item mb-3 {{ $message->sender_id == Auth::id() ? 'text-end' : '' }}">
+                            <div class="d-inline-block p-3 rounded" 
+                                 style="max-width: 80%; background: {{ $message->sender_id == Auth::id() ? 'var(--primary-color)' : 'var(--bg-card)' }}; 
+                                        color: {{ $message->sender_id == Auth::id() ? '#fff' : 'var(--text-primary)' }};
+                                        border-radius: 16px;
+                                        box-shadow: var(--shadow-sm);">
+                                <p style="margin: 0; word-wrap: break-word;">{{ $message->message }}</p>
+                                <small style="font-size: 0.7rem; opacity: 0.7;">
+                                    {{ $message->created_at->diffForHumans() }}
                                 </small>
-                                @if($message->product)
-                                    <div class="mt-2 p-2 rounded {{ $message->sender_id == Auth::id() ? 'bg-light text-dark' : 'bg-white' }}">
-                                        <small>
-                                            <i class="fas fa-shopping-bag me-1"></i>
-                                            عن منتج: 
-                                            <a href="{{ route('products.show', $message->product->id) }}" class="{{ $message->sender_id == Auth::id() ? 'text-primary' : 'text-info' }}">
-                                                {{ $message->product->name }}
-                                            </a>
-                                        </small>
-                                    </div>
-                                @endif
                             </div>
                         </div>
                     @endforeach
+                    
+                    @if($messages->isEmpty())
+                        <div class="text-center py-5">
+                            <i class="fas fa-comments fa-3x gold-text mb-3"></i>
+                            <p style="color: var(--text-muted);">لا توجد رسائل بعد</p>
+                        </div>
+                    @endif
                 </div>
                 
-                <div class="card-footer">
+                <div class="card-footer bg-transparent p-3 border-top">
                     <form action="{{ route('messages.send-conversation', $otherUser->id) }}" method="POST">
                         @csrf
                         <div class="input-group">
-                            <input type="text" name="message" class="form-control" placeholder="اكتب رسالتك هنا..." required>
-                            <input type="hidden" name="product_id" value="{{ request('product_id') }}">
-                            <button type="submit" class="btn btn-primary">
+                            <input type="text" name="message" class="form-control form-rizk" placeholder="اكتب رسالتك..." required>
+                            <button type="submit" class="btn btn-rizk-primary">
                                 <i class="fas fa-paper-plane"></i>
                             </button>
                         </div>
@@ -76,45 +68,4 @@
         </div>
     </div>
 </div>
-
-<style>
-.chat-messages {
-    scrollbar-width: thin;
-    scrollbar-color: #6366f1 #f1f5f9;
-}
-
-.chat-messages::-webkit-scrollbar {
-    width: 6px;
-}
-
-.chat-messages::-webkit-scrollbar-track {
-    background: #f1f5f9;
-}
-
-.chat-messages::-webkit-scrollbar-thumb {
-    background: #6366f1;
-    border-radius: 3px;
-}
-
-.message.sent {
-    text-align: left;
-}
-
-.message.received {
-    text-align: right;
-}
-
-.message-content {
-    max-width: 70%;
-    display: inline-block;
-    word-wrap: break-word;
-}
-</style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const chatMessages = document.querySelector('.chat-messages');
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-});
-</script>
 @endsection

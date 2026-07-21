@@ -105,6 +105,7 @@
                                     <option value="cars" {{ old('store_category') == 'cars' ? 'selected' : '' }}>🚗 سيارات</option>
                                     <option value="real_estate" {{ old('store_category') == 'real_estate' ? 'selected' : '' }}>🏠 عقارات</option>
                                     <option value="cleaning" {{ old('store_category') == 'cleaning' ? 'selected' : '' }}>🧹 ورشة تنظيف</option>
+                                    <option value="other" {{ old('store_category') == 'other' ? 'selected' : '' }}>📌 أخرى</option>
                                 </select>
                                 @error('store_category')
                                     <small class="text-danger">{{ $message }}</small>
@@ -177,6 +178,9 @@
                                         <option value="lawyer" {{ old('service_type') == 'lawyer' ? 'selected' : '' }}>⚖️ محامي</option>
                                         <option value="consultant" {{ old('service_type') == 'consultant' ? 'selected' : '' }}>💼 استشاري</option>
                                     </optgroup>
+                                    <optgroup label="📌 أخرى">
+                                        <option value="other" {{ old('service_type') == 'other' ? 'selected' : '' }}>📌 أخرى (يرجى التوضيح في الوصف)</option>
+                                    </optgroup>
                                 </select>
                                 @error('service_type')
                                     <small class="text-danger">{{ $message }}</small>
@@ -210,8 +214,10 @@
                         @enderror
                     </div>
                     
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-rizk-primary">إنشاء الحساب</button>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-rizk-primary btn-lg">
+                            <i class="fas fa-user-plus me-2"></i>إنشاء الحساب
+                        </button>
                     </div>
                     
                     <div class="text-center mt-3">

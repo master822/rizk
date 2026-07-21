@@ -10,7 +10,7 @@ use App\Models\Discount;
 
 class SearchController extends Controller
 {
-    // بحث المنتجات
+    // بحث المنتجات المتقدم
     public function searchProducts(Request $request)
     {
         $query = $request->get('q');
@@ -21,9 +21,20 @@ class SearchController extends Controller
         $sort = $request->get('sort', 'latest');
         
         $products = Product::query()
+            ->where('status', 'active')
             ->when($query, function($q) use ($query) {
-                return $q->where('name', 'LIKE', "%{$query}%")
-                         ->orWhere('description', 'LIKE', "%{$query}%");
+                // البحث في الاسم والوصف واسم البائع
+                return $q->where(function($subQuery) use ($query) {
+                    // البحث في اسم المنتج (بحث جزئي)
+                    $subQuery->where('name', 'LIKE', "%{$query}%")
+                             // البحث في وصف المنتج
+                             ->orWhere('description', 'LIKE', "%{$query}%")
+                             // البحث في اسم البائع من خلال العلاقة
+                             ->orWhereHas('user', function($userQuery) use ($query) {
+                                 $userQuery->where('name', 'LIKE', "%{$query}%")
+                                           ->orWhere('store_name', 'LIKE', "%{$query}%");
+                             });
+                });
             })
             ->when($category, function($q) use ($category) {
                 return $q->where('category_id', $category);
@@ -64,9 +75,12 @@ class SearchController extends Controller
         $merchants = User::where('user_type', 'merchant')
             ->where('is_active', 1)
             ->when($query, function($q) use ($query) {
-                return $q->where('name', 'LIKE', "%{$query}%")
-                         ->orWhere('store_name', 'LIKE', "%{$query}%")
-                         ->orWhere('city', 'LIKE', "%{$query}%");
+                return $q->where(function($subQuery) use ($query) {
+                    $subQuery->where('name', 'LIKE', "%{$query}%")
+                             ->orWhere('store_name', 'LIKE', "%{$query}%")
+                             ->orWhere('city', 'LIKE', "%{$query}%")
+                             ->orWhere('store_description', 'LIKE', "%{$query}%");
+                });
             })
             ->when($category, function($q) use ($category) {
                 return $q->whereHas('products', function($query) use ($category) {
@@ -101,8 +115,18 @@ class SearchController extends Controller
         $discounts = Discount::query()
             ->where('is_active', 1)
             ->when($query, function($q) use ($query) {
-                return $q->where('title', 'LIKE', "%{$query}%")
-                         ->orWhere('description', 'LIKE', "%{$query}%");
+                return $q->where(function($subQuery) use ($query) {
+                    $subQuery->where('name', 'LIKE', "%{$query}%")
+                             ->orWhere('description', 'LIKE', "%{$query}%")
+                             ->orWhereHas('product', function($productQuery) use ($query) {
+                                 $productQuery->where('name', 'LIKE', "%{$query}%")
+                                              ->orWhere('description', 'LIKE', "%{$query}%");
+                             })
+                             ->orWhereHas('merchant', function($merchantQuery) use ($query) {
+                                 $merchantQuery->where('name', 'LIKE', "%{$query}%")
+                                               ->orWhere('store_name', 'LIKE', "%{$query}%");
+                             });
+                });
             })
             ->when($category, function($q) use ($category) {
                 return $q->whereHas('product', function($query) use ($category) {
@@ -140,9 +164,16 @@ class SearchController extends Controller
         
         $products = Product::query()
             ->where('condition', 'used')
+            ->where('status', 'active')
             ->when($query, function($q) use ($query) {
-                return $q->where('name', 'LIKE', "%{$query}%")
-                         ->orWhere('description', 'LIKE', "%{$query}%");
+                return $q->where(function($subQuery) use ($query) {
+                    $subQuery->where('name', 'LIKE', "%{$query}%")
+                             ->orWhere('description', 'LIKE', "%{$query}%")
+                             ->orWhereHas('user', function($userQuery) use ($query) {
+                                 $userQuery->where('name', 'LIKE', "%{$query}%")
+                                           ->orWhere('store_name', 'LIKE', "%{$query}%");
+                             });
+                });
             })
             ->when($category, function($q) use ($category) {
                 return $q->where('category_id', $category);
@@ -178,106 +209,37 @@ class SearchController extends Controller
         $city = $request->get('city');
         $sort = $request->get('sort', 'latest');
         
-        // هذه محاكاة للخدمات - يمكنك ربطها بقاعدة بيانات الخدمات
-        $services = collect([
-            (object) [
-                'id' => 1,
-                'name' => 'طبخ منزل',
-                'type' => 'cooking',
-                'description' => 'خدمة طبخ منزلية بجودة عالية',
-                'price' => 50,
-                'city' => 'دمشق',
-                'user' => (object) ['name' => 'أحمد', 'avatar' => 'https://ui-avatars.com/api/?name=أحمد'],
-                'created_at' => now()->subDays(2),
-                'rating' => 4.5,
-                'image' => 'https://via.placeholder.com/300x200/6366f1/ffffff?text=طبخ+منزل'
-            ],
-            (object) [
-                'id' => 2,
-                'name' => 'خضار مقطعة',
-                'type' => 'vegetables',
-                'description' => 'خضار طازجة مقطعة وجاهزة للطبخ',
-                'price' => 25,
-                'city' => 'دمشق',
-                'user' => (object) ['name' => 'محمد', 'avatar' => 'https://ui-avatars.com/api/?name=محمد'],
-                'created_at' => now()->subDays(1),
-                'rating' => 4.8,
-                'image' => 'https://via.placeholder.com/300x200/22c55e/ffffff?text=خضار+مقطعة'
-            ],
-            (object) [
-                'id' => 3,
-                'name' => 'سيارة نقل',
-                'type' => 'transport',
-                'description' => 'سيارة نقل للبضائع والأثاث',
-                'price' => 100,
-                'city' => 'حلب',
-                'user' => (object) ['name' => 'علي', 'avatar' => 'https://ui-avatars.com/api/?name=علي'],
-                'created_at' => now()->subHours(5),
-                'rating' => 4.2,
-                'image' => 'https://via.placeholder.com/300x200/f59e0b/ffffff?text=سيارة+نقل'
-            ],
-            (object) [
-                'id' => 4,
-                'name' => 'فرص عمل - مطور ويب',
-                'type' => 'jobs',
-                'description' => 'مطلوب مطور ويب للعمل عن بعد',
-                'price' => 0,
-                'city' => 'دمشق',
-                'user' => (object) ['name' => 'شركة تقنية', 'avatar' => 'https://ui-avatars.com/api/?name=شركة'],
-                'created_at' => now()->subDays(3),
-                'rating' => 0,
-                'image' => 'https://via.placeholder.com/300x200/06b6d4/ffffff?text=فرص+عمل'
-            ],
-            (object) [
-                'id' => 5,
-                'name' => 'استأجر عامل بناء',
-                'type' => 'hire-worker',
-                'description' => 'عامل بناء ماهر للعمل في مشاريع البناء',
-                'price' => 40,
-                'city' => 'حماة',
-                'user' => (object) ['name' => 'خالد', 'avatar' => 'https://ui-avatars.com/api/?name=خالد'],
-                'created_at' => now()->subDays(4),
-                'rating' => 4.0,
-                'image' => 'https://via.placeholder.com/300x200/64748b/ffffff?text=استأجر+عامل'
-            ],
-            (object) [
-                'id' => 6,
-                'name' => 'استأجر فني تكييف',
-                'type' => 'hire-technician',
-                'description' => 'فني تكييف وتبريد معتمد',
-                'price' => 60,
-                'city' => 'اللاذقية',
-                'user' => (object) ['name' => 'سامر', 'avatar' => 'https://ui-avatars.com/api/?name=سامر'],
-                'created_at' => now()->subHours(2),
-                'rating' => 4.9,
-                'image' => 'https://via.placeholder.com/300x200/ef4444/ffffff?text=استأجر+فني'
-            ]
-        ]);
+        $services = \App\Models\Service::query()
+            ->where('is_active', 1)
+            ->when($query, function($q) use ($query) {
+                return $q->where(function($subQuery) use ($query) {
+                    $subQuery->where('service_name', 'LIKE', "%{$query}%")
+                             ->orWhere('description', 'LIKE', "%{$query}%")
+                             ->orWhere('city', 'LIKE', "%{$query}%")
+                             ->orWhereHas('user', function($userQuery) use ($query) {
+                                 $userQuery->where('name', 'LIKE', "%{$query}%")
+                                           ->orWhere('store_name', 'LIKE', "%{$query}%");
+                             });
+                });
+            })
+            ->when($serviceType, function($q) use ($serviceType) {
+                return $q->where('service_type', $serviceType);
+            })
+            ->when($city, function($q) use ($city) {
+                return $q->where('city', $city);
+            })
+            ->when($sort == 'latest', function($q) {
+                return $q->orderBy('created_at', 'desc');
+            })
+            ->when($sort == 'price_low', function($q) {
+                return $q->orderBy('price', 'asc');
+            })
+            ->when($sort == 'price_high', function($q) {
+                return $q->orderBy('price', 'desc');
+            })
+            ->paginate(12);
         
-        $services = $services->when($query, function($collection) use ($query) {
-            return $collection->filter(function($item) use ($query) {
-                return stripos($item->name, $query) !== false || 
-                       stripos($item->description, $query) !== false ||
-                       stripos($item->city, $query) !== false;
-            });
-        })
-        ->when($serviceType, function($collection) use ($serviceType) {
-            return $collection->where('type', $serviceType);
-        })
-        ->when($city, function($collection) use ($city) {
-            return $collection->where('city', $city);
-        })
-        ->when($sort == 'latest', function($collection) {
-            return $collection->sortByDesc('created_at');
-        })
-        ->when($sort == 'price_low', function($collection) {
-            return $collection->sortBy('price');
-        })
-        ->when($sort == 'price_high', function($collection) {
-            return $collection->sortByDesc('price');
-        });
-        
-        $cities = ['دمشق', 'حلب', 'حمص', 'حماة', 'اللاذقية', 'طرطوس', 'دير الزور', 'الحسكة', 'الرقة'];
+        $cities = ['دمشق', 'حلب', 'حمص', 'حماة', 'اللاذقية', 'طرطوس', 'دير الزور', 'السويداء', 'درعا', 'إدلب', 'الرقة', 'الحسكة', 'القامشلي'];
         
         return view('search.services', compact('services', 'query', 'serviceType', 'city', 'sort', 'cities'));
     }

@@ -5,21 +5,15 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\MerchantController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DiscountController;
-use App\Http\Controllers\MerchantDiscountController;
-use App\Http\Controllers\RatingController;
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MessageController;
-use App\Http\Controllers\MerchantSubscriptionController;
-use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\ChatController;
-use App\Http\Controllers\UserDashboardController;
-use App\Http\Controllers\MerchantDashboardController;
-use App\Http\Controllers\ServiceProviderDashboardController;
-use App\Http\Controllers\JobController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\JobController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\MerchantDashboardController;
+use App\Http\Controllers\UserDashboardController;
+use App\Http\Controllers\ServiceProviderDashboardController;
 
 // الصفحة الرئيسية
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -31,7 +25,7 @@ Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// الملف الشخصي (لجميع المستخدمين)
+// الملف الشخصي
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -39,18 +33,54 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/change-password', [ProfileController::class, 'changePassword'])->name('change-password.update');
 });
 
-// المنتجات (العامة)
+// المنتجات
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
-Route::get('/products/new', [ProductController::class, 'newProducts'])->name('products.new');
-Route::get('/products/used', [ProductController::class, 'usedProducts'])->name('products.used');
 Route::get('/products/category/{categorySlug}', [ProductController::class, 'byCategory'])->name('products.byCategory');
-Route::get('/products/search', [ProductController::class, 'search'])->name('products.search');
 Route::get('/products/{id}', [ProductController::class, 'show'])->name('products.show');
+Route::get('/products/{id}/edit', [ProductController::class, 'edit'])->name('products.edit');
+Route::put('/products/{id}', [ProductController::class, 'update'])->name('products.update');
+Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('products.destroy');
 
 // المنتجات المستعملة
 Route::get('/used-products', [ProductController::class, 'usedProducts'])->name('used-products');
 
-// لوحة تحكم المستخدم العادي
+// التجار
+Route::get('/merchants', [MerchantController::class, 'merchantsList'])->name('merchants.index');
+Route::get('/merchants/{id}', [MerchantController::class, 'show'])->name('merchants.show');
+Route::get('/merchants/category/{category}', [MerchantController::class, 'byCategory'])->name('merchants.byCategory');
+
+// التخفيضات
+Route::get('/discounts', [DiscountController::class, 'discounts'])->name('discounts');
+Route::get('/discounts/{id}', [DiscountController::class, 'show'])->name('discounts.show');
+
+// الرسائل
+Route::middleware(['auth'])->group(function () {
+    Route::get('/messages/contact/{productId}', [MessageController::class, 'contactMerchantForm'])->name('messages.contact.form');
+    Route::post('/messages/contact/{productId}', [MessageController::class, 'contactMerchant'])->name('messages.contact');
+    Route::get('/messages/inbox', [MessageController::class, 'inbox'])->name('messages.inbox');
+    Route::get('/messages/sent', [MessageController::class, 'sent'])->name('messages.sent');
+    Route::get('/messages/conversation/{userId}', [MessageController::class, 'showConversation'])->name('messages.conversation');
+    Route::post('/messages/conversation/{userId}/send', [MessageController::class, 'sendMessageInConversation'])->name('messages.send-conversation');
+    Route::delete('/messages/{id}', [MessageController::class, 'deleteMessage'])->name('messages.delete');
+    Route::delete('/messages/conversation/{userId}/clear', [MessageController::class, 'clearConversation'])->name('messages.clear-conversation');
+});
+
+// فرص العمل
+Route::get('/jobs', [JobController::class, 'index'])->name('jobs.index');
+Route::get('/jobs/{id}', [JobController::class, 'show'])->name('jobs.show');
+Route::get('/messages/contact-job/{jobId}', [MessageController::class, 'contactJobForm'])->name('messages.contact.job');
+Route::post('/messages/contact-job/{jobId}', [MessageController::class, 'contactJob'])->name('messages.contact.job.send');
+
+// الإشعارات
+Route::middleware(['auth'])->prefix('notifications')->group(function () {
+    Route::get('/', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/{id}/mark-read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    Route::delete('/{id}', [NotificationController::class, 'delete'])->name('notifications.delete');
+    Route::delete('/delete-all', [NotificationController::class, 'deleteAll'])->name('notifications.delete-all');
+});
+
+// لوحة تحكم المستخدم
 Route::middleware(['auth'])->prefix('user')->group(function () {
     Route::get('/dashboard', [UserDashboardController::class, 'dashboard'])->name('user.dashboard');
     Route::get('/products', [UserDashboardController::class, 'myProducts'])->name('user.products');
@@ -60,7 +90,6 @@ Route::middleware(['auth'])->prefix('user')->group(function () {
     Route::put('/products/{id}', [UserDashboardController::class, 'updateProduct'])->name('user.products.update');
     Route::delete('/products/{id}', [UserDashboardController::class, 'deleteProduct'])->name('user.products.delete');
     Route::get('/messages', [UserDashboardController::class, 'messages'])->name('user.messages');
-    Route::post('/messages/{id}/read', [UserDashboardController::class, 'markMessageRead'])->name('user.messages.read');
     Route::get('/profile', [UserDashboardController::class, 'profile'])->name('user.profile');
     Route::post('/profile', [UserDashboardController::class, 'updateProfile'])->name('user.profile.update');
     Route::post('/change-password', [UserDashboardController::class, 'changePassword'])->name('user.change-password');
@@ -78,15 +107,12 @@ Route::middleware(['auth'])->prefix('merchant')->group(function () {
     Route::get('/discounts', [MerchantDashboardController::class, 'discounts'])->name('merchant.discounts');
     Route::get('/discounts/create', [MerchantDashboardController::class, 'createDiscount'])->name('merchant.discounts.create');
     Route::post('/discounts', [MerchantDashboardController::class, 'storeDiscount'])->name('merchant.discounts.store');
+    Route::get('/discounts/{id}/edit', [MerchantDashboardController::class, 'editDiscount'])->name('merchant.discounts.edit');
+    Route::put('/discounts/{id}', [MerchantDashboardController::class, 'updateDiscount'])->name('merchant.discounts.update');
     Route::delete('/discounts/{id}', [MerchantDashboardController::class, 'deleteDiscount'])->name('merchant.discounts.delete');
-    Route::get('/messages', [MerchantDashboardController::class, 'messages'])->name('merchant.messages');
-    Route::post('/messages/{id}/read', [MerchantDashboardController::class, 'markMessageRead'])->name('merchant.messages.read');
     Route::get('/jobs', [MerchantDashboardController::class, 'jobs'])->name('merchant.jobs');
     Route::get('/jobs/create', [MerchantDashboardController::class, 'createJob'])->name('merchant.jobs.create');
     Route::post('/jobs', [MerchantDashboardController::class, 'storeJob'])->name('merchant.jobs.store');
-    Route::get('/jobs/{id}/edit', [MerchantDashboardController::class, 'editJob'])->name('merchant.jobs.edit');
-    Route::put('/jobs/{id}', [MerchantDashboardController::class, 'updateJob'])->name('merchant.jobs.update');
-    Route::delete('/jobs/{id}', [MerchantDashboardController::class, 'deleteJob'])->name('merchant.jobs.delete');
     Route::get('/profile', [MerchantDashboardController::class, 'profile'])->name('merchant.profile');
     Route::post('/profile', [MerchantDashboardController::class, 'updateProfile'])->name('merchant.profile.update');
     Route::post('/change-password', [MerchantDashboardController::class, 'changePassword'])->name('merchant.change-password');
@@ -104,42 +130,13 @@ Route::middleware(['auth'])->prefix('service-provider')->group(function () {
     Route::get('/jobs', [ServiceProviderDashboardController::class, 'jobs'])->name('service-provider.jobs');
     Route::get('/jobs/create', [ServiceProviderDashboardController::class, 'createJob'])->name('service-provider.jobs.create');
     Route::post('/jobs', [ServiceProviderDashboardController::class, 'storeJob'])->name('service-provider.jobs.store');
-    Route::get('/jobs/{id}/edit', [ServiceProviderDashboardController::class, 'editJob'])->name('service-provider.jobs.edit');
-    Route::put('/jobs/{id}', [ServiceProviderDashboardController::class, 'updateJob'])->name('service-provider.jobs.update');
-    Route::delete('/jobs/{id}', [ServiceProviderDashboardController::class, 'deleteJob'])->name('service-provider.jobs.delete');
-    Route::get('/messages', [ServiceProviderDashboardController::class, 'messages'])->name('service-provider.messages');
-    Route::post('/messages/{id}/read', [ServiceProviderDashboardController::class, 'markMessageRead'])->name('service-provider.messages.read');
     Route::get('/profile', [ServiceProviderDashboardController::class, 'profile'])->name('service-provider.profile');
     Route::post('/profile', [ServiceProviderDashboardController::class, 'updateProfile'])->name('service-provider.profile.update');
     Route::post('/change-password', [ServiceProviderDashboardController::class, 'changePassword'])->name('service-provider.change-password');
 });
 
-// التجار (العامة)
-Route::get('/merchants', [MerchantController::class, 'merchantsList'])->name('merchants.index');
-Route::get('/merchants/{id}', [MerchantController::class, 'show'])->name('merchants.show');
-
-// التخفيضات (العامة)
-Route::get('/discounts', [DiscountController::class, 'discounts'])->name('discounts');
-
-// التقييمات
-Route::middleware(['auth'])->group(function () {
-    Route::post('/ratings', [RatingController::class, 'store'])->name('ratings.store');
-    Route::get('/ratings/{merchantId}', [RatingController::class, 'index'])->name('ratings.index');
-});
-
-// الرسائل والمحادثات
-Route::middleware(['auth'])->group(function () {
-    Route::post('/messages/contact/{productId}', [MessageController::class, 'contactMerchant'])->name('messages.contact');
-    Route::post('/messages/contact-seller/{productId}', [MessageController::class, 'contactProductSeller'])->name('messages.contact-seller');
-    Route::get('/messages/inbox', [MessageController::class, 'inbox'])->name('messages.inbox');
-    Route::get('/messages/sent', [MessageController::class, 'sent'])->name('messages.sent');
-    Route::post('/messages/{id}/read', [MessageController::class, 'markAsRead'])->name('messages.markAsRead');
-    Route::get('/messages/conversation/{userId}', [MessageController::class, 'showConversation'])->name('messages.conversation');
-    Route::post('/messages/conversation/{userId}/send', [MessageController::class, 'sendMessageInConversation'])->name('messages.send-conversation');
-    Route::post('/messages/{messageId}/reply', [MessageController::class, 'replyToMessage'])->name('messages.reply');
-});
-
-// الخدمات (العامة)
+// الخدمات
+Route::view('/services', 'services.index')->name('services.index');
 Route::view('/services/cooking', 'services.cooking')->name('services.cooking');
 Route::view('/services/vegetables', 'services.vegetables')->name('services.vegetables');
 Route::view('/services/transport', 'services.transport')->name('services.transport');
@@ -148,15 +145,6 @@ Route::view('/services/hire-worker', 'services.hire-worker')->name('services.hir
 Route::view('/services/hire-technician', 'services.hire-technician')->name('services.hire-technician');
 Route::view('/services/cleaning-company', 'services.cleaning-company')->name('services.cleaning-company');
 
-// صفحات إضافية
-Route::view('/about', 'about')->name('about');
-Route::view('/contact', 'contact')->name('contact');
-Route::view('/privacy', 'privacy')->name('privacy');
-Route::view('/terms', 'terms')->name('terms');
-
-// صفحة الألوان (للاختبار)
-Route::view('/colors-preview', 'colors-preview')->name('colors-preview');
-
 // البحث
 Route::get('/search/products', [SearchController::class, 'searchProducts'])->name('search.products');
 Route::get('/search/merchants', [SearchController::class, 'searchMerchants'])->name('search.merchants');
@@ -164,7 +152,11 @@ Route::get('/search/discounts', [SearchController::class, 'searchDiscounts'])->n
 Route::get('/search/used-products', [SearchController::class, 'searchUsedProducts'])->name('search.used-products');
 Route::get('/search/services', [SearchController::class, 'searchServices'])->name('search.services');
 
-// اختبار الدفع
-Route::get('/test-payment', function() {
-    return view('test-payment');
-});
+// صفحات إضافية
+Route::view('/about', 'about')->name('about');
+Route::view('/contact', 'contact')->name('contact');
+Route::view('/privacy', 'privacy')->name('privacy');
+Route::view('/terms', 'terms')->name('terms');
+Route::post('/products/{id}/like', [App\Http\Controllers\ProductController::class, 'toggleLike'])->name('products.like');
+Route::post('/products/{id}/like', [App\Http\Controllers\ProductController::class, 'toggleLike'])->name('products.like');
+Route::post('/products/{id}/like', [App\Http\Controllers\ProductController::class, 'toggleLike'])->name('products.like');

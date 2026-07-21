@@ -109,4 +109,18 @@ class User extends Authenticatable
     {
         return $this->isUser();
     }
+
+    public function getCategoryName($category)
+    {
+        $categories = [
+            'clothes' => '👗 ملابس',
+            'electronics' => '📱 إلكترونيات',
+            'home' => '🛋️ أدوات منزلية',
+            'grocery' => '🛒 بقالة',
+            'cars' => '🚗 سيارات',
+            'real_estate' => '🏠 عقارات',
+            'cleaning' => '🧹 ورشة تنظيف',
+        ];
+        return $categories[$category] ?? $category;
+    }
 }

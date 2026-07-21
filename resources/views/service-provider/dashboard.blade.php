@@ -33,7 +33,7 @@
             <div class="card-rizk text-center p-3">
                 <i class="fas fa-user fa-3x gold-text mb-2"></i>
                 <p style="color: var(--text-muted);">الملف الشخصي</p>
-                <a href="{{ route('service-provider.profile') }}" class="btn btn-rizk-outline btn-sm">تعديل</a>
+                <a href="{{ route('service-provider.profile') }}" class="btn btn-rizk-primary btn-sm">تعديل</a>
             </div>
         </div>
     </div>
@@ -41,19 +41,10 @@
     <div class="row">
         <div class="col-12">
             <div class="card-rizk p-3">
-                <div class="d-flex justify-content-between">
-                    <h6 style="color: var(--text-primary);">الإجراءات السريعة</h6>
-                </div>
-                <div class="row g-2">
-                    <div class="col-md-4">
-                        <a href="{{ route('service-provider.services.create') }}" class="btn btn-rizk-primary w-100">+ إضافة خدمة</a>
-                    </div>
-                    <div class="col-md-4">
-                        <a href="{{ route('service-provider.jobs.create') }}" class="btn btn-rizk-success w-100">+ نشر فرصة عمل</a>
-                    </div>
-                    <div class="col-md-4">
-                        <a href="{{ route('service-provider.profile') }}" class="btn btn-rizk-outline w-100">تعديل الملف الشخصي</a>
-                    </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ route('service-provider.services.create') }}" class="btn btn-rizk-primary">+ إضافة خدمة</a>
+                    <a href="{{ route('service-provider.jobs.create') }}" class="btn btn-rizk-success">+ نشر فرصة عمل</a>
+                    <a href="{{ route('service-provider.profile') }}" class="btn btn-rizk-outline">تعديل الملف الشخصي</a>
                 </div>
             </div>
         </div>

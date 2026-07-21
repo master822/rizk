@@ -36,6 +36,20 @@ class Product extends Model
     {
         return $this->belongsTo(Category::class);
     }
+    public function likes()
+{
+    return $this->hasMany(Like::class);
+}
+
+public function getLikesCountAttribute()
+{
+    return $this->likes()->where('is_liked', true)->count();
+}
+
+public function isLikedByUser($userId)
+{
+    return $this->likes()->where('user_id', $userId)->where('is_liked', true)->exists();
+}
 
     public function ratings()
     {
@@ -124,4 +138,6 @@ class Product extends Model
     {
         return $query->where('discount_percentage', '>', 0);
     }
+
+    
 }

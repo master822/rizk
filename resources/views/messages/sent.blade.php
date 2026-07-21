@@ -4,117 +4,55 @@
 
 @section('content')
 <div class="container py-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0">
-                    <i class="fas fa-paper-plane me-2"></i>الرسائل المرسلة
-                </h1>
-                <div class="btn-group">
-                    <a href="{{ route('messages.inbox') }}" class="btn btn-outline-primary">
-                        <i class="fas fa-inbox me-2"></i>الوارد
-                    </a>
-                    <a href="{{ route('messages.sent') }}" class="btn btn-primary">
-                        <i class="fas fa-paper-plane me-2"></i>المرسل
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-12">
-            @if($messages->count() > 0)
-                <div class="card">
-                    <div class="card-body p-0">
-                        <div class="list-group list-group-flush">
-                            @foreach($messages as $message)
-                                <div class="list-group-item px-0">
-                                    <div class="row align-items-center">
-                                        <div class="col-md-8">
-                                            <div class="d-flex align-items-center">
-                                                <div>
-                                                    <h6 class="mb-1">
-                                                        إلى: {{ $message->receiver->name }}
-                                                        @if($message->product)
-                                                            <small class="text-muted"> - عن: {{ $message->product->name }}</small>
-                                                        @endif
-                                                    </h6>
-                                                    <p class="mb-1 text-muted">{{ Str::limit($message->message, 100) }}</p>
-                                                    <small class="text-muted">
-                                                        <i class="fas fa-clock me-1"></i>
-                                                        {{ $message->created_at->diffForHumans() }}
-                                                    </small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4 text-end">
-                                            <div class="btn-group">
-                                                <button class="btn btn-sm btn-outline-primary" 
-                                                        data-bs-toggle="modal" 
-                                                        data-bs-target="#messageModal{{ $message->id }}">
-                                                    <i class="fas fa-eye me-1"></i>عرض
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- مودال عرض الرسالة -->
-                                <div class="modal fade" id="messageModal{{ $message->id }}" tabindex="-1">
-                                    <div class="modal-dialog modal-lg">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">رسالة إلى {{ $message->receiver->name }}</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                @if($message->product)
-                                                    <div class="alert alert-info mb-3">
-                                                        <strong>عن المنتج:</strong> 
-                                                        <a href="{{ route('products.show', $message->product->id) }}" target="_blank">
-                                                            {{ $message->product->name }}
-                                                        </a>
-                                                    </div>
-                                                @endif
-                                                <div class="message-content bg-light p-3 rounded">
-                                                    <p class="mb-0">{{ $message->message }}</p>
-                                                </div>
-                                                <div class="mt-3">
-                                                    <small class="text-muted">
-                                                        <i class="fas fa-clock me-1"></i>
-                                                        {{ $message->created_at->format('Y-m-d H:i') }}
-                                                    </small>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
+    <h4 class="section-title-rizk mb-3">الرسائل المرسلة</h4>
+    
+    <div class="card-rizk p-3">
+        @forelse($messages as $message)
+            <div class="message-item border-bottom py-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="d-flex gap-3">
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode($message->receiver->name ?? '') }}&size=40&background=d4af37&color=fff" 
+                             class="rounded-circle" width="40" height="40">
+                        <div>
+                            <h6 style="color: var(--text-primary); margin: 0;">
+                                إلى: {{ $message->receiver->name ?? 'غير معروف' }}
+                            </h6>
+                            <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">
+                                {{ Str::limit($message->message, 100) }}
+                            </p>
+                            @if($message->product)
+                                <small style="color: var(--text-muted);">
+                                    <i class="fas fa-box me-1"></i>{{ $message->product->name }}
+                                </small>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <small style="color: var(--text-muted);">{{ $message->created_at->diffForHumans() }}</small>
+                        <div class="mt-1">
+                            <a href="{{ route('messages.conversation', $message->receiver_id) }}" 
+                               class="btn btn-rizk-primary btn-sm">
+                                <i class="fas fa-reply me-1"></i>مراسلة
+                            </a>
+                            <form action="{{ route('messages.delete', $message->id) }}" method="POST" class="d-inline">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('هل أنت متأكد؟')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
-            @else
-                <div class="text-center py-5">
-                    <i class="fas fa-paper-plane fa-3x text-muted mb-3"></i>
-                    <h4 class="text-muted">لا توجد رسائل مرسلة</h4>
-                    <p class="text-muted">لم تقم بإرسال أي رسائل بعد</p>
-                </div>
-            @endif
-        </div>
+            </div>
+        @empty
+            <div class="text-center py-5">
+                <i class="fas fa-paper-plane fa-3x gold-text mb-3"></i>
+                <p style="color: var(--text-muted);">لا توجد رسائل مرسلة</p>
+            </div>
+        @endforelse
     </div>
+    
+    {{ $messages->links() }}
 </div>
-
-<style>
-.list-group-item {
-    transition: background-color 0.3s ease;
-}
-
-.list-group-item:hover {
-    background-color: #f8f9fa !important;
-}
-</style>
 @endsection

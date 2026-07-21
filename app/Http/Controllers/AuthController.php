@@ -56,7 +56,6 @@ class AuthController extends Controller
 
         // تنظيف رقم الهاتف
         $phone = $request->phone;
-        // إذا كان الرقم يبدأ بـ 09، أضف +963
         if (str_starts_with($phone, '09')) {
             $phone = '+963' . substr($phone, 1);
         }
@@ -74,7 +73,7 @@ class AuthController extends Controller
         if ($request->user_type === 'merchant') {
             $merchantValidator = Validator::make($request->all(), [
                 'store_name' => 'required|string|max:255',
-                'store_category' => 'required|in:electronics,clothes,home,grocery,cars,real_estate,cleaning',
+                'store_category' => 'required|in:electronics,clothes,home,grocery,cars,real_estate,cleaning,other',
                 'store_description' => 'required|string|max:500',
             ]);
 
@@ -171,6 +170,7 @@ class AuthController extends Controller
             'accountant' => 'محاسب',
             'lawyer' => 'محامي',
             'consultant' => 'استشاري',
+            'other' => 'أخرى',
         ];
         return $types[$type] ?? $type;
     }

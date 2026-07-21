@@ -4,91 +4,145 @@
 
 @section('content')
 <div class="container py-4">
-    <h2 class="mb-4"><i class="fas fa-search me-2"></i>بحث المنتجات</h2>
+    <h2 class="section-title-rizk mb-4">🔍 بحث المنتجات</h2>
     
-    <!-- نموذج البحث -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <form method="GET" action="{{ route('search.products') }}" class="row g-3">
+    <!-- نموذج البحث المتقدم -->
+    <div class="card-rizk p-4 mb-4">
+        <form action="{{ route('search.products') }}" method="GET">
+            <div class="row g-3">
                 <div class="col-md-4">
-                    <input type="text" name="q" class="form-control" placeholder="ابحث عن منتج..." value="{{ $query ?? '' }}">
+                    <label style="color: var(--text-primary);">كلمة البحث</label>
+                    <input type="text" name="q" class="form-control form-rizk" 
+                           placeholder="ابحث عن منتج..." value="{{ request('q') }}">
                 </div>
                 <div class="col-md-2">
-                    <select name="category" class="form-select">
-                        <option value="">جميع الفئات</option>
-                        @foreach($categories as $cat)
-                            <option value="{{ $cat->id }}" {{ ($category ?? '') == $cat->id ? 'selected' : '' }}>
-                                {{ $cat->name }}
-                            </option>
-                        @endforeach
+                    <label style="color: var(--text-primary);">السعر من</label>
+                    <input type="number" name="min_price" class="form-control form-rizk" 
+                           placeholder="0" value="{{ request('min_price') }}">
+                </div>
+                <div class="col-md-2">
+                    <label style="color: var(--text-primary);">السعر إلى</label>
+                    <input type="number" name="max_price" class="form-control form-rizk" 
+                           placeholder="1000" value="{{ request('max_price') }}">
+                </div>
+                <div class="col-md-2">
+                    <label style="color: var(--text-primary);">الحالة</label>
+                    <select name="condition" class="form-select form-rizk">
+                        <option value="">الكل</option>
+                        <option value="new" {{ request('condition') == 'new' ? 'selected' : '' }}>جديد</option>
+                        <option value="used" {{ request('condition') == 'used' ? 'selected' : '' }}>مستعمل</option>
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <select name="condition" class="form-select">
-                        <option value="">جميع الحالات</option>
-                        <option value="new" {{ ($condition ?? '') == 'new' ? 'selected' : '' }}>جديد</option>
-                        <option value="used" {{ ($condition ?? '') == 'used' ? 'selected' : '' }}>مستعمل</option>
+                    <label style="color: var(--text-primary);">الترتيب</label>
+                    <select name="sort" class="form-select form-rizk">
+                        <option value="latest" {{ request('sort') == 'latest' ? 'selected' : '' }}>الأحدث</option>
+                        <option value="price_low" {{ request('sort') == 'price_low' ? 'selected' : '' }}>السعر: منخفض</option>
+                        <option value="price_high" {{ request('sort') == 'price_high' ? 'selected' : '' }}>السعر: مرتفع</option>
                     </select>
                 </div>
-                <div class="col-md-1">
-                    <input type="number" name="min_price" class="form-control" placeholder="أقل سعر" value="{{ $minPrice ?? '' }}">
-                </div>
-                <div class="col-md-1">
-                    <input type="number" name="max_price" class="form-control" placeholder="أعلى سعر" value="{{ $maxPrice ?? '' }}">
-                </div>
-                <div class="col-md-1">
-                    <select name="sort" class="form-select">
-                        <option value="latest" {{ ($sort ?? '') == 'latest' ? 'selected' : '' }}>الأحدث</option>
-                        <option value="price_low" {{ ($sort ?? '') == 'price_low' ? 'selected' : '' }}>السعر: منخفض</option>
-                        <option value="price_high" {{ ($sort ?? '') == 'price_high' ? 'selected' : '' }}>السعر: مرتفع</option>
-                    </select>
-                </div>
-                <div class="col-md-1">
-                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search"></i></button>
-                </div>
-            </form>
-        </div>
+            </div>
+            <div class="mt-3">
+                <button type="submit" class="btn btn-rizk-primary">
+                    <i class="fas fa-search me-2"></i>بحث
+                </button>
+                <a href="{{ route('search.products') }}" class="btn btn-rizk-outline">
+                    <i class="fas fa-undo me-2"></i>إعادة ضبط
+                </a>
+            </div>
+        </form>
     </div>
     
-    <!-- النتائج -->
-    <div class="row">
+    <!-- نتائج البحث -->
+    <div class="row g-4">
         @forelse($products as $product)
-            <div class="col-md-3 mb-3">
-                <div class="card h-100 shadow-sm">
-                    @if($product->image)
-                        <img src="{{ asset('storage/' . $product->image) }}" class="card-img-top" style="height: 150px; object-fit: cover;" alt="{{ $product->name }}">
-                    @else
-                        <img src="https://via.placeholder.com/300x150/6366f1/ffffff?text={{ urlencode($product->name) }}" class="card-img-top" style="height: 150px; object-fit: cover;" alt="{{ $product->name }}">
-                    @endif
-                    <div class="card-body">
-                        <h6 class="card-title">{{ $product->name }}</h6>
-                        <p class="card-text small text-muted">{{ Str::limit($product->description, 50) }}</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-bold text-primary">{{ number_format($product->price, 2) }} $</span>
-                            <span class="badge bg-{{ $product->condition == 'new' ? 'success' : 'warning' }}">
-                                {{ $product->condition == 'new' ? 'جديد' : 'مستعمل' }}
-                            </span>
-                        </div>
-                        <small class="text-muted"><i class="fas fa-user me-1"></i>{{ $product->user->name ?? '' }}</small>
+            <div class="col-lg-3 col-md-4 col-sm-6">
+                <div class="product-card">
+                    <div class="product-img-wrapper">
+                        @php
+                            $imageUrl = asset('storage/products/product_1.png');
+                            if ($product->images) {
+                                $images = json_decode($product->images, true);
+                                if (is_array($images) && count($images) > 0) {
+                                    if (!str_starts_with($images[0], 'http')) {
+                                        $imageUrl = asset('storage/' . $images[0]);
+                                    } else {
+                                        $imageUrl = $images[0];
+                                    }
+                                }
+                            }
+                        @endphp
+                        <img src="{{ $imageUrl }}" 
+                             alt="{{ $product->name }}" 
+                             loading="lazy"
+                             style="width:100%; height:100%; object-fit:cover;">
                     </div>
-                    <div class="card-footer bg-transparent">
-                        <a href="{{ route('products.show', $product->id) }}" class="btn btn-sm btn-outline-primary w-100">عرض التفاصيل</a>
+                    <div class="product-body">
+                        <h6 class="product-title">{{ $product->name }}</h6>
+                        <p class="product-description">{{ Str::limit($product->description ?? '', 50) }}</p>
+                        <div class="product-footer">
+                            <span class="product-price">{{ number_format($product->price ?? 0, 2) }} TL</span>
+                            <span class="badge-rizk badge-rizk-gold">{{ $product->condition }}</span>
+                        </div>
+                        <div class="product-actions mt-2 d-flex gap-2">
+                            <a href="{{ route('products.show', $product->id) }}" class="btn btn-rizk-primary btn-sm flex-fill">عرض</a>
+                        </div>
                     </div>
                 </div>
             </div>
         @empty
-            <div class="col-12">
-                <div class="alert alert-info text-center py-5">
-                    <i class="fas fa-search fa-3x d-block mb-3"></i>
-                    <h5>لم يتم العثور على منتجات مطابقة</h5>
-                    <p class="text-muted">حاول تغيير كلمات البحث أو الفلتر</p>
-                </div>
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-search fa-3x gold-text mb-3"></i>
+                <h5 style="color: var(--text-primary);">لا توجد نتائج</h5>
+                <p style="color: var(--text-muted);">حاول تغيير كلمات البحث أو الفلاتر</p>
             </div>
         @endforelse
     </div>
     
-    <div class="d-flex justify-content-center mt-4">
-        {{ $products->appends(request()->query())->links() }}
-    </div>
+    @if($products->hasPages())
+        <div class="pagination-simple">
+            {{ $products->appends(request()->query())->links('pagination::bootstrap-5') }}
+        </div>
+    @endif
 </div>
+
+<style>
+    .product-card {
+        transition: all 0.3s ease;
+        border-radius: 16px;
+        overflow: hidden;
+        background: var(--bg-card);
+        box-shadow: var(--shadow-sm);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .product-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-lg);
+    }
+    .product-img-wrapper {
+        position: relative;
+        overflow: hidden;
+        background: #f1f5f9;
+        padding-top: 66.67%;
+        height: 0;
+    }
+    .product-img-wrapper img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+    .product-body { padding: 16px; flex: 1; display: flex; flex-direction: column; }
+    .product-title { font-weight: 700; font-size: 1rem; color: var(--text-primary); }
+    .product-description { font-size: 0.85rem; color: var(--text-muted); flex: 1; }
+    .product-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+    .product-price { font-weight: 700; color: var(--primary-color); font-size: 1.1rem; }
+    .badge-rizk { padding: 4px 12px; border-radius: 50px; font-weight: 600; font-size: 0.7rem; }
+    .badge-rizk-gold { background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); color: #fff; }
+</style>
 @endsection

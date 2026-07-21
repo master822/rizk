@@ -1,298 +1,250 @@
 @extends('layouts.app')
 
-@section('title', 'المنتجات المستعملة - متجر التخفيضات')
+@section('title', 'المنتجات المستعملة')
 
 @section('content')
-<div class="container py-5">
-    <div class="row">
-        <div class="col-12">
-            <!-- رأس الصفحة -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h1 class="text-primary mb-2"> المنتجات المستعملة</h1>
+<div class="container py-4">
+    <h1 class="section-title-rizk text-center mb-4">المنتجات المستعملة</h1>
+    
+    <div class="row g-4">
+        @forelse($products as $product)
+            <div class="col-lg-3 col-md-4 col-sm-6">
+                <div class="product-card">
+                    <div class="product-img-wrapper">
+                        @php
+                            $imageUrl = asset('storage/products/product_1.png');
+                            if ($product->images) {
+                                $images = json_decode($product->images, true);
+                                if (is_array($images) && count($images) > 0 && $images[0]) {
+                                    if (file_exists(storage_path('app/public/' . $images[0]))) {
+                                        $imageUrl = asset('storage/' . $images[0]);
+                                    }
+                                }
+                            }
+                        @endphp
+                        <img src="{{ $imageUrl }}" 
+                             alt="{{ $product->name }}" 
+                             loading="lazy"
+                             style="width:100%; height:100%; object-fit:cover;"
+                             onerror="this.src='{{ asset('storage/products/product_1.png') }}'">
+                    </div>
+                    <div class="product-body">
+                        <h6 class="product-title">{{ $product->name }}</h6>
+                        <p class="product-description">{{ Str::limit($product->description ?? '', 50) }}</p>
+                        
+                        <div class="product-footer">
+                            <span class="product-price">{{ number_format($product->price ?? 0, 2) }} TL</span>
+                            <span class="badge-rizk badge-rizk-gold">مستعمل</span>
+                        </div>
+                        
+                        <div class="seller-info mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-user me-1"></i>
+                                {{ $product->user->name ?? 'غير معروف' }}
+                            </small>
+                            <small class="text-muted mx-2">|</small>
+                            <small class="text-muted">
+                                <i class="fas fa-eye me-1"></i>
+                                {{ $product->views ?? 0 }}
+                            </small>
+                        </div>
+                        
+                        <div class="product-actions mt-3 d-flex gap-2">
+                            <a href="{{ route('products.show', $product->id) }}" 
+                               class="btn btn-rizk-primary btn-sm flex-fill">
+                                <i class="fas fa-eye me-1"></i>عرض
+                            </a>
+                            @auth
+                                @if(Auth::id() != $product->user_id)
+                                    <a href="{{ route('messages.contact.form', $product->id) }}" 
+                                       class="btn btn-rizk-outline btn-sm flex-fill">
+                                        <i class="fas fa-envelope me-1"></i>تواصل
+                                    </a>
+                                @endif
+                            @endauth
+                        </div>
+                    </div>
                 </div>
             </div>
-            <p class="text-muted mb-4">منتجات مستعملة بحالة جيدة من مستخدمين موثوقين - فرص رائعة بأسعار مناسبة</p>
+        @empty
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-recycle fa-3x gold-text mb-3"></i>
+                <h5 style="color: var(--text-primary);">لا توجد منتجات مستعملة</h5>
+                <p style="color: var(--text-muted);">كن أول من يضيف منتجاً مستعملاً!</p>
+            </div>
+        @endforelse
+    </div>
 
-            @if($products->count() > 0)
-                <div class="row">
-                    @foreach($products as $product)
-                        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
-                            <div class="modern-card product-card h-100">
-                                @if($product->discount_percentage > 0)
-                                    <div class="position-absolute top-0 start-0 m-3">
-                                        <span class="badge bg-danger fs-7">خصم {{ $product->discount_percentage }}%</span>
-                                    </div>
-                                @endif
-                                
-                                <div class="used-badge">مستعمل</div>
-                                
-                                <div class="card-img-container">
-                                    @if($product->images)
-                                        @php
-                                            $images = json_decode($product->images);
-                                            $firstImage = $images[0] ?? null;
-                                        @endphp
-                                        @if($firstImage)
-                                            <img src="{{ asset('storage/' . $firstImage) }}" 
-                                                 class="card-product-image" 
-                                                 alt="{{ $product->name }}">
-                                        @else
-                                            <div class="no-image-placeholder">
-                                                <i class="fas fa-image fa-2x text-muted"></i>
-                                            </div>
-                                        @endif
-                                    @else
-                                        <div class="no-image-placeholder">
-                                            <i class="fas fa-image fa-2x text-muted"></i>
-                                        </div>
-                                    @endif
-                                </div>
-                                
-                                <div class="card-body">
-                                    <h5 class="card-title text-dark">{{ $product->name }}</h5>
-                                    <p class="card-text text-secondary">{{ Str::limit($product->description, 60) }}</p>
-                                    
-                                    <div class="price-section mb-2">
-                                        @if($product->discount_percentage > 0)
-                                            @php
-                                                $discountedPrice = $product->price - ($product->price * $product->discount_percentage / 100);
-                                            @endphp
-                                            <span class="text-danger fw-bold fs-5">{{ number_format($discountedPrice, 2) }} TL</span>
-                                            <small class="text-muted text-decoration-line-through d-block">{{ number_format($product->price, 2) }} TL</small>
-                                        @else
-                                            <span class="fw-bold text-primary fs-5">{{ number_format($product->price, 2) }} TL</span>
-                                        @endif
-                                    </div>
-                                    
-                                    <div class="product-meta">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <span class="text-muted small">
-                                                <i class="fas fa-store me-1"></i>
-                                                {{ $product->user->name }}
-                                            </span>
-                                            <span class="text-muted small">
-                                                <i class="fas fa-eye me-1"></i>
-                                                {{ $product->views }}
-                                            </span>
-                                        </div>
-                                        <div class="condition-badge">
-                                            <small class="text-dark"><strong>الحالة:</strong> {{ $product->condition }}</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="card-action">
-                                    <a href="{{ route('products.show', $product->id) }}" class="btn btn-primary w-100 btn-view-product">
-                                        <i class="fas fa-eye me-2"></i>عرض المنتج
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-
-                <!-- التصفح -->
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="d-flex justify-content-center">
-                            {{ $products->links() }}
-                        </div>
-                    </div>
-                </div>
+    @if($products->hasPages())
+        <div class="pagination-simple">
+            @if($products->onFirstPage())
+                <span class="page-btn disabled">السابق</span>
             @else
-                <div class="text-center py-5">
-                    <div class="empty-state">
-                        <i class="fas fa-box fa-4x text-muted mb-4"></i>
-                        <h4 class="text-muted mb-3">لا توجد منتجات مستعملة حالياً</h4>
-                        <p class="text-muted mb-4">كن أول من يضيف منتجاً مستعملاً للبيع</p>
-                        @auth
-                            @if(Auth::user()->user_type === 'user')
-                                <a href="{{ route('user.products.create') }}" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-plus me-2"></i>إضافة منتج مستعمل
-                                </a>
-                            @else
-                                <a href="{{ route('register') }}" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-user-plus me-2"></i>انضم كـ مستخدم عادي
-                                </a>
-                            @endif
-                        @else
-                            <a href="{{ route('register') }}" class="btn btn-primary btn-lg">
-                                <i class="fas fa-user-plus me-2"></i>انضم كـ مستخدم عادي
-                            </a>
-                        @endauth
-                    </div>
-                </div>
+                <a href="{{ $products->previousPageUrl() }}" class="page-btn">السابق</a>
+            @endif
+            
+            <span class="page-info">صفحة {{ $products->currentPage() }} من {{ $products->lastPage() }}</span>
+            
+            @if($products->hasMorePages())
+                <a href="{{ $products->nextPageUrl() }}" class="page-btn">التالي</a>
+            @else
+                <span class="page-btn disabled">التالي</span>
             @endif
         </div>
-    </div>
+    @endif
 </div>
 
 <style>
-.modern-card {
-    background: #ffffff;
-    border: none;
-    border-radius: 16px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    transition: all 0.3s ease;
-    overflow: hidden;
-    position: relative;
-}
-
-.modern-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-.used-badge {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: #f59e0b;
-    color: white;
-    border-radius: 8px;
-    padding: 6px 12px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    z-index: 2;
-}
-
-.card-img-container {
-    position: relative;
-    overflow: hidden;
-    height: 220px;
-    border-radius: 12px 12px 0 0;
-}
-
-.card-product-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.5s ease;
-}
-
-.modern-card:hover .card-product-image {
-    transform: scale(1.1);
-}
-
-.no-image-placeholder {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #f1f5f9;
-}
-
-.card-title {
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    line-height: 1.3;
-    color: #2d3748 !important;
-}
-
-.card-text {
-    color: #64748b !important;
-    line-height: 1.5;
-    margin-bottom: 1rem;
-}
-
-.price-section {
-    margin: 1rem 0;
-}
-
-.condition-badge {
-    background: #fef3c7;
-    color: #92400e;
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    margin-top: 10px;
-}
-
-.btn-view-product {
-    background: linear-gradient(135deg, #4361ee, #3a0ca3);
-    border: none;
-    border-radius: 12px;
-    padding: 12px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.btn-view-product:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3);
-}
-
-.empty-state {
-    padding: 60px 20px;
-}
-
-.product-meta {
-    border-top: 1px solid #e2e8f0;
-    padding-top: 1rem;
-    margin-top: 1rem;
-}
-
-/* تحسينات للاستجابة */
-@media (max-width: 768px) {
-    .modern-card:hover {
-        transform: translateY(-5px);
-    }
-    
-    .card-img-container {
-        height: 180px;
-    }
-    
-    .btn-group {
+    .product-card {
+        transition: all 0.3s ease;
+        border-radius: 16px;
+        overflow: hidden;
+        background: var(--bg-card);
+        box-shadow: var(--shadow-sm);
+        height: 100%;
+        display: flex;
         flex-direction: column;
-        gap: 10px;
     }
     
-    .btn-group .btn {
-        width: 100%;
+    .product-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-lg);
     }
-}
-
-/* التصفح */
-.pagination {
-    justify-content: center;
-}
-
-.page-link {
-    border: none;
-    color: #4361ee;
-    padding: 10px 18px;
-    border-radius: 8px;
-    margin: 0 4px;
-    transition: all 0.3s ease;
-}
-
-.page-link:hover {
-    background: #4361ee;
-    color: white;
-    transform: translateY(-2px);
-}
-
-.page-item.active .page-link {
-    background: #4361ee;
-    border-color: #4361ee;
-}
+    
+    .product-img-wrapper {
+        position: relative;
+        overflow: hidden;
+        background: #f1f5f9;
+        padding-top: 66.67%;
+        height: 0;
+    }
+    
+    .product-img-wrapper img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+    
+    .product-card:hover .product-img-wrapper img {
+        transform: scale(1.05);
+    }
+    
+    .product-body {
+        padding: 16px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .product-title {
+        font-weight: 700;
+        font-size: 1rem;
+        margin-bottom: 6px;
+        color: var(--text-primary);
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .product-description {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        flex: 1;
+        margin-bottom: 10px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .product-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 12px;
+        border-top: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    [data-theme="dark"] .product-footer {
+        border-top-color: rgba(255,255,255,0.05);
+    }
+    
+    .product-price {
+        font-weight: 700;
+        color: var(--primary-color);
+        font-size: 1.1rem;
+    }
+    
+    .seller-info {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .product-actions .btn-sm {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+    }
+    
+    .badge-rizk {
+        padding: 4px 12px;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 0.7rem;
+    }
+    
+    .badge-rizk-gold {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        color: #fff;
+    }
+    
+    .pagination-simple {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 16px;
+        margin-top: 30px;
+        padding: 20px 0;
+    }
+    
+    .pagination-simple .page-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 28px;
+        border-radius: var(--radius-md);
+        border: 2px solid var(--primary-color);
+        background: var(--bg-card);
+        color: var(--text-primary);
+        font-weight: 700;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        min-width: 140px;
+    }
+    
+    .pagination-simple .page-btn:hover {
+        background: var(--primary-color);
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .pagination-simple .page-btn.disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+    
+    .pagination-simple .page-info {
+        color: var(--text-muted);
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
 </style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // إضافة تأثيرات للبطاقات
-    const cards = document.querySelectorAll('.modern-card');
-    cards.forEach(card => {
-        card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-8px)';
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0)';
-        });
-    });
-});
-</script>
 @endsection

@@ -4,8 +4,6 @@
 
 @section('content')
 <div class="container py-4">
-    @php $user = Auth::user(); @endphp
-    
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="section-title-rizk">منتجاتي</h4>
         <a href="{{ route('merchant.products.create') }}" class="btn btn-rizk-primary">+ إضافة منتج</a>
@@ -13,43 +11,52 @@
 
     <div class="row g-3">
         @forelse($products as $product)
-        <div class="col-md-3">
-            <div class="card-rizk hover-lift">
-                @if($product->images)
-                    @php $images = json_decode($product->images, true); @endphp
-                    @if($images && count($images) > 0)
-                        <img src="{{ asset('storage/' . $images[0]) }}" class="card-img-top" style="height: 150px; object-fit: cover;">
-                    @else
-                        <img src="https://via.placeholder.com/300x150/d4af37/ffffff?text={{ urlencode($product->name) }}" class="card-img-top" style="height: 150px; object-fit: cover;">
-                    @endif
-                @else
-                    <img src="https://via.placeholder.com/300x150/d4af37/ffffff?text={{ urlencode($product->name) }}" class="card-img-top" style="height: 150px; object-fit: cover;">
-                @endif
-                <div class="card-body">
-                    <h6 style="color: var(--text-primary);">{{ $product->name }}</h6>
-                    <p class="small" style="color: var(--text-muted);">{{ Str::limit($product->description, 50) }}</p>
-                    <div class="d-flex justify-content-between">
-                        <span class="fw-bold gold-text">{{ number_format($product->price, 2) }} $</span>
-                        <span class="badge-rizk badge-rizk-gold">{{ $product->condition }}</span>
+            <div class="col-md-3">
+                <div class="card-rizk hover-lift">
+                    <div class="product-img-wrapper" style="height: 150px; overflow: hidden;">
+                        @php
+                            $imageUrl = asset('storage/products/product_1.png');
+                            if ($product->images) {
+                                $images = json_decode($product->images, true);
+                                if (is_array($images) && count($images) > 0) {
+                                    if (!str_starts_with($images[0], 'http')) {
+                                        $imageUrl = asset('storage/' . $images[0]);
+                                    } else {
+                                        $imageUrl = $images[0];
+                                    }
+                                }
+                            }
+                        @endphp
+                        <img src="{{ $imageUrl }}" 
+                             alt="{{ $product->name }}"
+                             style="width: 100%; height: 100%; object-fit: cover;"
+                             onerror="this.src='{{ asset('storage/products/product_1.png') }}'">
+                    </div>
+                    <div class="card-body">
+                        <h6 style="color: var(--text-primary);">{{ $product->name }}</h6>
+                        <p class="small" style="color: var(--text-muted);">{{ Str::limit($product->description, 50) }}</p>
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold gold-text">{{ number_format($product->price, 2) }} TL</span>
+                            <span class="badge-rizk badge-rizk-gold">{{ $product->condition }}</span>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ route('merchant.products.edit', $product->id) }}" class="btn btn-rizk-outline btn-sm w-100">تعديل</a>
+                        <form action="{{ route('merchant.products.delete', $product->id) }}" method="POST" class="mt-1">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="btn btn-danger btn-sm w-100" onclick="return confirm('هل أنت متأكد؟')">حذف</button>
+                        </form>
                     </div>
                 </div>
-                <div class="card-footer">
-                    <a href="{{ route('merchant.products.edit', $product->id) }}" class="btn btn-rizk-outline btn-sm w-100">تعديل</a>
-                    <form action="{{ route('merchant.products.delete', $product->id) }}" method="POST" class="mt-1">
-                        @csrf @method('DELETE')
-                        <button type="submit" class="btn btn-danger btn-sm w-100" onclick="return confirm('هل أنت متأكد؟')">حذف</button>
-                    </form>
+            </div>
+        @empty
+            <div class="col-12">
+                <div class="card-rizk text-center p-5">
+                    <i class="fas fa-box-open fa-3x gold-text mb-3"></i>
+                    <h5 style="color: var(--text-primary);">لا توجد منتجات</h5>
+                    <a href="{{ route('merchant.products.create') }}" class="btn btn-rizk-primary">إضافة منتج</a>
                 </div>
             </div>
-        </div>
-        @empty
-        <div class="col-12">
-            <div class="card-rizk text-center p-5">
-                <i class="fas fa-box-open fa-3x gold-text mb-3"></i>
-                <h5 style="color: var(--text-primary);">لا توجد منتجات</h5>
-                <a href="{{ route('merchant.products.create') }}" class="btn btn-rizk-primary">إضافة منتج</a>
-            </div>
-        </div>
         @endforelse
     </div>
     {{ $products->links() }}
